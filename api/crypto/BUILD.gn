@@ -30,7 +30,7 @@ rtc_library("frame_crypto_transformer") {
   if (rtc_build_ssl) {
     deps += [ "//third_party/boringssl" ]
   } else {
-    configs += [ ":external_ssl_library" ]
+    configs += [ "//:external_ssl_library" ]
   }
 }
 

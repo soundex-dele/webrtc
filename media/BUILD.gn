@@ -534,14 +534,10 @@ rtc_library("rtc_internal_video_codecs") {
     "../api/video_codecs:scalability_mode",
     "../api/video_codecs:video_codecs_api",
     "../api/video_codecs:video_encoder_factory_template",
-    "../api/video_codecs:video_encoder_factory_template_libvpx_vp8_adapter",
-    "../api/video_codecs:video_encoder_factory_template_libvpx_vp9_adapter",
     "../api/video_codecs:video_encoder_factory_template_open_h264_adapter",
     "../call:call_interfaces",
     "../modules/video_coding:video_codec_interface",
     "../modules/video_coding:webrtc_h264",
-    "../modules/video_coding:webrtc_vp8",
-    "../modules/video_coding:webrtc_vp9",
     "../rtc_base:checks",
     "../rtc_base:logging",
     "../rtc_base/system:rtc_export",
@@ -550,6 +546,15 @@ rtc_library("rtc_internal_video_codecs") {
     "//third_party/abseil-cpp/absl/container:inlined_vector",
     "//third_party/abseil-cpp/absl/strings",
   ]
+
+  if (rtc_build_libvpx) {
+    deps += [
+      "../api/video_codecs:video_encoder_factory_template_libvpx_vp8_adapter",
+      "../api/video_codecs:video_encoder_factory_template_libvpx_vp9_adapter",
+      "../modules/video_coding:webrtc_vp8",
+      "../modules/video_coding:webrtc_vp9",
+    ]
+  }
 
   if (enable_libaom) {
     defines += [ "RTC_USE_LIBAOM_AV1_ENCODER" ]

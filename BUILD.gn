@@ -505,15 +505,26 @@ config("common_objc") {
   frameworks = [ "Foundation.framework" ]
 }
 
+declare_args() {
+  rtc_ssl_lib_path = ""
+}
+
 if (!rtc_build_ssl) {
   config("external_ssl_library") {
     if (rtc_ssl_root != "") {
       include_dirs = [ rtc_ssl_root ]
     }
-    libs = [
-      "crypto",
-      "ssl",
-    ]
+    if (rtc_ssl_lib_path != "") {
+      libs = [
+        rtc_ssl_lib_path + "/libcrypto.a",
+        rtc_ssl_lib_path + "/libssl.a",
+      ]
+    } else {
+      libs = [
+        "crypto",
+        "ssl",
+      ]
+    }
   }
 }
 
@@ -545,13 +556,9 @@ if (!build_with_chromium) {
       "api/test/metrics",
       "api/video_codecs:video_decoder_factory_template",
       "api/video_codecs:video_decoder_factory_template_dav1d_adapter",
-      "api/video_codecs:video_decoder_factory_template_libvpx_vp8_adapter",
-      "api/video_codecs:video_decoder_factory_template_libvpx_vp9_adapter",
       "api/video_codecs:video_decoder_factory_template_open_h264_adapter",
       "api/video_codecs:video_encoder_factory_template",
       "api/video_codecs:video_encoder_factory_template_libaom_av1_adapter",
-      "api/video_codecs:video_encoder_factory_template_libvpx_vp8_adapter",
-      "api/video_codecs:video_encoder_factory_template_libvpx_vp9_adapter",
       "api/video_codecs:video_encoder_factory_template_open_h264_adapter",
       "audio",
       "call",
@@ -566,6 +573,15 @@ if (!build_with_chromium) {
       "sdk",
       "video",
     ]
+
+    if (rtc_build_libvpx) {
+      deps += [
+        "api/video_codecs:video_decoder_factory_template_libvpx_vp8_adapter",
+        "api/video_codecs:video_decoder_factory_template_libvpx_vp9_adapter",
+        "api/video_codecs:video_encoder_factory_template_libvpx_vp8_adapter",
+        "api/video_codecs:video_encoder_factory_template_libvpx_vp9_adapter",
+      ]
+    }
 
     if (rtc_include_builtin_audio_codecs) {
       deps += [
