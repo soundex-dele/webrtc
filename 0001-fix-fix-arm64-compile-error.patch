@@ -1,0 +1,472 @@
+From 5c35b3e006cc924fac9309b25c19e1339d326576 Mon Sep 17 00:00:00 2001
+From: xiesongde <xiesongde@xa.com>
+Date: Fri, 13 Mar 2026 10:15:13 +0800
+Subject: [PATCH] [fix] fix arm64 compile error
+
+---
+ BUILD.gn                                  | 32 ++++++---
+ api/crypto/BUILD.gn                       |  2 +-
+ api/video_codecs/BUILD.gn                 | 88 ++++++++++++-----------
+ examples/BUILD.gn                         |  4 --
+ media/BUILD.gn                            | 13 ++--
+ modules/video_coding/BUILD.gn             |  4 --
+ p2p/base/port_interface.h                 |  2 +-
+ pc/BUILD.gn                               | 30 ++++----
+ pc/codec_vendor.h                         |  2 +-
+ pc/jsep_transport.h                       |  2 +-
+ rtc_tools/BUILD.gn                        | 14 ++--
+ rtc_tools/data_channel_benchmark/BUILD.gn |  4 --
+ test/peer_scenario/BUILD.gn               |  4 --
+ 13 files changed, 111 insertions(+), 90 deletions(-)
+
+diff --git a/BUILD.gn b/BUILD.gn
+index e4a82bc8d6..5b0bd6a701 100644
+--- a/BUILD.gn
++++ b/BUILD.gn
+@@ -505,15 +505,26 @@ config("common_objc") {
+   frameworks = [ "Foundation.framework" ]
+ }
+ 
++declare_args() {
++  rtc_ssl_lib_path = ""
++}
++
+ if (!rtc_build_ssl) {
+   config("external_ssl_library") {
+     if (rtc_ssl_root != "") {
+       include_dirs = [ rtc_ssl_root ]
+     }
+-    libs = [
+-      "crypto",
+-      "ssl",
+-    ]
++    if (rtc_ssl_lib_path != "") {
++      libs = [
++        rtc_ssl_lib_path + "/libcrypto.a",
++        rtc_ssl_lib_path + "/libssl.a",
++      ]
++    } else {
++      libs = [
++        "crypto",
++        "ssl",
++      ]
++    }
+   }
+ }
+ 
+@@ -545,13 +556,9 @@ if (!build_with_chromium) {
+       "api/test/metrics",
+       "api/video_codecs:video_decoder_factory_template",
+       "api/video_codecs:video_decoder_factory_template_dav1d_adapter",
+-      "api/video_codecs:video_decoder_factory_template_libvpx_vp8_adapter",
+-      "api/video_codecs:video_decoder_factory_template_libvpx_vp9_adapter",
+       "api/video_codecs:video_decoder_factory_template_open_h264_adapter",
+       "api/video_codecs:video_encoder_factory_template",
+       "api/video_codecs:video_encoder_factory_template_libaom_av1_adapter",
+-      "api/video_codecs:video_encoder_factory_template_libvpx_vp8_adapter",
+-      "api/video_codecs:video_encoder_factory_template_libvpx_vp9_adapter",
+       "api/video_codecs:video_encoder_factory_template_open_h264_adapter",
+       "audio",
+       "call",
+@@ -567,6 +574,15 @@ if (!build_with_chromium) {
+       "video",
+     ]
+ 
++    if (rtc_build_libvpx) {
++      deps += [
++        "api/video_codecs:video_decoder_factory_template_libvpx_vp8_adapter",
++        "api/video_codecs:video_decoder_factory_template_libvpx_vp9_adapter",
++        "api/video_codecs:video_encoder_factory_template_libvpx_vp8_adapter",
++        "api/video_codecs:video_encoder_factory_template_libvpx_vp9_adapter",
++      ]
++    }
++
+     if (rtc_include_builtin_audio_codecs) {
+       deps += [
+         "api/audio_codecs:builtin_audio_decoder_factory",
+diff --git a/api/crypto/BUILD.gn b/api/crypto/BUILD.gn
+index 1e33cd0ae8..2b29c71744 100644
+--- a/api/crypto/BUILD.gn
++++ b/api/crypto/BUILD.gn
+@@ -30,7 +30,7 @@ rtc_library("frame_crypto_transformer") {
+   if (rtc_build_ssl) {
+     deps += [ "//third_party/boringssl" ]
+   } else {
+-    configs += [ ":external_ssl_library" ]
++    configs += [ "//:external_ssl_library" ]
+   }
+ }
+ 
+diff --git a/api/video_codecs/BUILD.gn b/api/video_codecs/BUILD.gn
+index 8351ae424b..a237061205 100644
+--- a/api/video_codecs/BUILD.gn
++++ b/api/video_codecs/BUILD.gn
+@@ -164,32 +164,34 @@ rtc_source_set("video_encoder_factory_template") {
+   ]
+ }
+ 
+-rtc_source_set("video_encoder_factory_template_libvpx_vp8_adapter") {
+-  visibility = [ "*" ]
+-  allow_poison = [ "software_video_codecs" ]
+-  public = [ "video_encoder_factory_template_libvpx_vp8_adapter.h" ]
+-
+-  deps = [
+-    ":scalability_mode",
+-    ":video_codecs_api",
+-    "../../modules/video_coding:webrtc_vp8",
+-    "../../modules/video_coding:webrtc_vp8_scalability",
+-    "../environment",
+-    "//third_party/abseil-cpp/absl/container:inlined_vector",
+-  ]
+-}
++if (rtc_build_libvpx) {
++  rtc_source_set("video_encoder_factory_template_libvpx_vp8_adapter") {
++    visibility = [ "*" ]
++    allow_poison = [ "software_video_codecs" ]
++    public = [ "video_encoder_factory_template_libvpx_vp8_adapter.h" ]
++
++    deps = [
++      ":scalability_mode",
++      ":video_codecs_api",
++      "../../modules/video_coding:webrtc_vp8",
++      "../../modules/video_coding:webrtc_vp8_scalability",
++      "../environment",
++      "//third_party/abseil-cpp/absl/container:inlined_vector",
++    ]
++  }
+ 
+-rtc_source_set("video_encoder_factory_template_libvpx_vp9_adapter") {
+-  visibility = [ "*" ]
+-  allow_poison = [ "software_video_codecs" ]
+-  public = [ "video_encoder_factory_template_libvpx_vp9_adapter.h" ]
++  rtc_source_set("video_encoder_factory_template_libvpx_vp9_adapter") {
++    visibility = [ "*" ]
++    allow_poison = [ "software_video_codecs" ]
++    public = [ "video_encoder_factory_template_libvpx_vp9_adapter.h" ]
+ 
+-  deps = [
+-    ":scalability_mode",
+-    ":video_codecs_api",
+-    "../../modules/video_coding:webrtc_vp9",
+-    "../environment",
+-  ]
++    deps = [
++      ":scalability_mode",
++      ":video_codecs_api",
++      "../../modules/video_coding:webrtc_vp9",
++      "../environment",
++    ]
++  }
+ }
+ 
+ rtc_source_set("video_encoder_factory_template_open_h264_adapter") {
+@@ -234,27 +236,29 @@ rtc_source_set("video_decoder_factory_template") {
+   ]
+ }
+ 
+-rtc_source_set("video_decoder_factory_template_libvpx_vp8_adapter") {
+-  visibility = [ "*" ]
+-  allow_poison = [ "software_video_codecs" ]
+-  public = [ "video_decoder_factory_template_libvpx_vp8_adapter.h" ]
++if (rtc_build_libvpx) {
++  rtc_source_set("video_decoder_factory_template_libvpx_vp8_adapter") {
++    visibility = [ "*" ]
++    allow_poison = [ "software_video_codecs" ]
++    public = [ "video_decoder_factory_template_libvpx_vp8_adapter.h" ]
+ 
+-  deps = [
+-    ":video_codecs_api",
+-    "../../modules/video_coding:webrtc_vp8",
+-    "../environment",
+-  ]
+-}
++    deps = [
++      ":video_codecs_api",
++      "../../modules/video_coding:webrtc_vp8",
++      "../environment",
++    ]
++  }
+ 
+-rtc_source_set("video_decoder_factory_template_libvpx_vp9_adapter") {
+-  visibility = [ "*" ]
+-  allow_poison = [ "software_video_codecs" ]
+-  public = [ "video_decoder_factory_template_libvpx_vp9_adapter.h" ]
++  rtc_source_set("video_decoder_factory_template_libvpx_vp9_adapter") {
++    visibility = [ "*" ]
++    allow_poison = [ "software_video_codecs" ]
++    public = [ "video_decoder_factory_template_libvpx_vp9_adapter.h" ]
+ 
+-  deps = [
+-    ":video_codecs_api",
+-    "../../modules/video_coding:webrtc_vp9",
+-  ]
++    deps = [
++      ":video_codecs_api",
++      "../../modules/video_coding:webrtc_vp9",
++    ]
++  }
+ }
+ 
+ rtc_source_set("video_decoder_factory_template_open_h264_adapter") {
+diff --git a/examples/BUILD.gn b/examples/BUILD.gn
+index 69022724e4..3f80530572 100644
+--- a/examples/BUILD.gn
++++ b/examples/BUILD.gn
+@@ -767,13 +767,9 @@ if (is_linux || is_chromeos || is_win) {
+       "../api/video:video_rtp_headers",
+       "../api/video_codecs:video_decoder_factory_template",
+       "../api/video_codecs:video_decoder_factory_template_dav1d_adapter",
+-      "../api/video_codecs:video_decoder_factory_template_libvpx_vp8_adapter",
+-      "../api/video_codecs:video_decoder_factory_template_libvpx_vp9_adapter",
+       "../api/video_codecs:video_decoder_factory_template_open_h264_adapter",
+       "../api/video_codecs:video_encoder_factory_template",
+       "../api/video_codecs:video_encoder_factory_template_libaom_av1_adapter",
+-      "../api/video_codecs:video_encoder_factory_template_libvpx_vp8_adapter",
+-      "../api/video_codecs:video_encoder_factory_template_libvpx_vp9_adapter",
+       "../api/video_codecs:video_encoder_factory_template_open_h264_adapter",
+       "../media:rtc_audio_video",
+       "../modules/audio_device",
+diff --git a/media/BUILD.gn b/media/BUILD.gn
+index 8042a7ce34..8e65a776b8 100644
+--- a/media/BUILD.gn
++++ b/media/BUILD.gn
+@@ -534,14 +534,10 @@ rtc_library("rtc_internal_video_codecs") {
+     "../api/video_codecs:scalability_mode",
+     "../api/video_codecs:video_codecs_api",
+     "../api/video_codecs:video_encoder_factory_template",
+-    "../api/video_codecs:video_encoder_factory_template_libvpx_vp8_adapter",
+-    "../api/video_codecs:video_encoder_factory_template_libvpx_vp9_adapter",
+     "../api/video_codecs:video_encoder_factory_template_open_h264_adapter",
+     "../call:call_interfaces",
+     "../modules/video_coding:video_codec_interface",
+     "../modules/video_coding:webrtc_h264",
+-    "../modules/video_coding:webrtc_vp8",
+-    "../modules/video_coding:webrtc_vp9",
+     "../rtc_base:checks",
+     "../rtc_base:logging",
+     "../rtc_base/system:rtc_export",
+@@ -551,6 +547,15 @@ rtc_library("rtc_internal_video_codecs") {
+     "//third_party/abseil-cpp/absl/strings",
+   ]
+ 
++  if (rtc_build_libvpx) {
++    deps += [
++      "../api/video_codecs:video_encoder_factory_template_libvpx_vp8_adapter",
++      "../api/video_codecs:video_encoder_factory_template_libvpx_vp9_adapter",
++      "../modules/video_coding:webrtc_vp8",
++      "../modules/video_coding:webrtc_vp9",
++    ]
++  }
++
+   if (enable_libaom) {
+     defines += [ "RTC_USE_LIBAOM_AV1_ENCODER" ]
+     deps += [
+diff --git a/modules/video_coding/BUILD.gn b/modules/video_coding/BUILD.gn
+index d308040153..6e14856ac7 100644
+--- a/modules/video_coding/BUILD.gn
++++ b/modules/video_coding/BUILD.gn
+@@ -969,13 +969,9 @@ if (rtc_include_tests) {
+       "../../api/video_codecs:video_codecs_api",
+       "../../api/video_codecs:video_decoder_factory_template",
+       "../../api/video_codecs:video_decoder_factory_template_dav1d_adapter",
+-      "../../api/video_codecs:video_decoder_factory_template_libvpx_vp8_adapter",
+-      "../../api/video_codecs:video_decoder_factory_template_libvpx_vp9_adapter",
+       "../../api/video_codecs:video_decoder_factory_template_open_h264_adapter",
+       "../../api/video_codecs:video_encoder_factory_template",
+       "../../api/video_codecs:video_encoder_factory_template_libaom_av1_adapter",
+-      "../../api/video_codecs:video_encoder_factory_template_libvpx_vp8_adapter",
+-      "../../api/video_codecs:video_encoder_factory_template_libvpx_vp9_adapter",
+       "../../api/video_codecs:video_encoder_factory_template_open_h264_adapter",
+       "../../common_video",
+       "../../media:media_constants",
+diff --git a/p2p/base/port_interface.h b/p2p/base/port_interface.h
+index 93a3a252ee..e396ba4bb2 100644
+--- a/p2p/base/port_interface.h
++++ b/p2p/base/port_interface.h
+@@ -55,7 +55,7 @@ class PortInterface {
+   virtual ~PortInterface();
+ 
+   virtual IceCandidateType Type() const = 0;
+-  virtual const Network* Network() const = 0;
++  virtual const webrtc::Network* Network() const = 0;
+ 
+   // Methods to set/get ICE role and tiebreaker values.
+   virtual void SetIceRole(IceRole role) = 0;
+diff --git a/pc/BUILD.gn b/pc/BUILD.gn
+index d6b0acbe56..6d7dda3f0c 100644
+--- a/pc/BUILD.gn
++++ b/pc/BUILD.gn
+@@ -2247,13 +2247,9 @@ if (rtc_include_tests && !build_with_chromium) {
+       "../api/units:time_delta",
+       "../api/video_codecs:video_decoder_factory_template",
+       "../api/video_codecs:video_decoder_factory_template_dav1d_adapter",
+-      "../api/video_codecs:video_decoder_factory_template_libvpx_vp8_adapter",
+-      "../api/video_codecs:video_decoder_factory_template_libvpx_vp9_adapter",
+       "../api/video_codecs:video_decoder_factory_template_open_h264_adapter",
+       "../api/video_codecs:video_encoder_factory_template",
+       "../api/video_codecs:video_encoder_factory_template_libaom_av1_adapter",
+-      "../api/video_codecs:video_encoder_factory_template_libvpx_vp8_adapter",
+-      "../api/video_codecs:video_encoder_factory_template_libvpx_vp9_adapter",
+       "../api/video_codecs:video_encoder_factory_template_open_h264_adapter",
+       "../p2p:basic_packet_socket_factory",
+       "../p2p:p2p_test_utils",
+@@ -2274,6 +2270,15 @@ if (rtc_include_tests && !build_with_chromium) {
+       "../test:wait_until",
+       "//third_party/abseil-cpp/absl/strings",
+     ]
++
++    if (rtc_build_libvpx) {
++      deps += [
++        "../api/video_codecs:video_decoder_factory_template_libvpx_vp8_adapter",
++        "../api/video_codecs:video_decoder_factory_template_libvpx_vp9_adapter",
++        "../api/video_codecs:video_encoder_factory_template_libvpx_vp8_adapter",
++        "../api/video_codecs:video_encoder_factory_template_libvpx_vp9_adapter",
++      ]
++    }
+   }
+ 
+   rtc_library("peerconnection_wrapper") {
+@@ -2514,13 +2519,9 @@ if (rtc_include_tests && !build_with_chromium) {
+       "../api/video_codecs:video_codecs_api",
+       "../api/video_codecs:video_decoder_factory_template",
+       "../api/video_codecs:video_decoder_factory_template_dav1d_adapter",
+-      "../api/video_codecs:video_decoder_factory_template_libvpx_vp8_adapter",
+-      "../api/video_codecs:video_decoder_factory_template_libvpx_vp9_adapter",
+       "../api/video_codecs:video_decoder_factory_template_open_h264_adapter",
+       "../api/video_codecs:video_encoder_factory_template",
+       "../api/video_codecs:video_encoder_factory_template_libaom_av1_adapter",
+-      "../api/video_codecs:video_encoder_factory_template_libvpx_vp8_adapter",
+-      "../api/video_codecs:video_encoder_factory_template_libvpx_vp9_adapter",
+       "../api/video_codecs:video_encoder_factory_template_open_h264_adapter",
+       "../call:call_interfaces",
+       "../call/adaptation:resource_adaptation_test_utilities",
+@@ -2599,6 +2600,15 @@ if (rtc_include_tests && !build_with_chromium) {
+       "//third_party/jsoncpp",
+     ]
+ 
++    if (rtc_build_libvpx) {
++      deps += [
++        "../api/video_codecs:video_decoder_factory_template_libvpx_vp8_adapter",
++        "../api/video_codecs:video_decoder_factory_template_libvpx_vp9_adapter",
++        "../api/video_codecs:video_encoder_factory_template_libvpx_vp8_adapter",
++        "../api/video_codecs:video_encoder_factory_template_libvpx_vp9_adapter",
++      ]
++    }
++
+     # These deps are kept separately because they can't be automatically
+     # regenerated by gn_check_autofix tool
+     deps += [
+@@ -2856,13 +2866,9 @@ if (rtc_include_tests && !build_with_chromium) {
+       "../api/video_codecs:video_codecs_api",
+       "../api/video_codecs:video_decoder_factory_template",
+       "../api/video_codecs:video_decoder_factory_template_dav1d_adapter",
+-      "../api/video_codecs:video_decoder_factory_template_libvpx_vp8_adapter",
+-      "../api/video_codecs:video_decoder_factory_template_libvpx_vp9_adapter",
+       "../api/video_codecs:video_decoder_factory_template_open_h264_adapter",
+       "../api/video_codecs:video_encoder_factory_template",
+       "../api/video_codecs:video_encoder_factory_template_libaom_av1_adapter",
+-      "../api/video_codecs:video_encoder_factory_template_libvpx_vp8_adapter",
+-      "../api/video_codecs:video_encoder_factory_template_libvpx_vp9_adapter",
+       "../api/video_codecs:video_encoder_factory_template_open_h264_adapter",
+       "../call:call_interfaces",
+       "../call:payload_type_picker",
+diff --git a/pc/codec_vendor.h b/pc/codec_vendor.h
+index 1472225a00..e50070310d 100644
+--- a/pc/codec_vendor.h
++++ b/pc/codec_vendor.h
+@@ -119,7 +119,7 @@ class CodecVendor {
+ class CodecLookupHelper {
+  public:
+   virtual ~CodecLookupHelper() = default;
+-  virtual PayloadTypeSuggester* PayloadTypeSuggester() = 0;
++  virtual webrtc::PayloadTypeSuggester* PayloadTypeSuggester() = 0;
+   // Look up the codec vendor to use, depending on context.
+   // This call may get additional arguments in the future, to aid
+   // in selection of the correct context.
+diff --git a/pc/jsep_transport.h b/pc/jsep_transport.h
+index 2840cc2461..63264556d1 100644
+--- a/pc/jsep_transport.h
++++ b/pc/jsep_transport.h
+@@ -204,7 +204,7 @@ class JsepTransport {
+     return rtp_dtls_transport_;
+   }
+ 
+-  scoped_refptr<SctpTransport> SctpTransport() const { return sctp_transport_; }
++  scoped_refptr<webrtc::SctpTransport> SctpTransport() const { return sctp_transport_; }
+ 
+   // TODO(bugs.webrtc.org/9719): Delete method, update callers to use
+   // SctpTransport() instead.
+diff --git a/rtc_tools/BUILD.gn b/rtc_tools/BUILD.gn
+index bac6167a60..11e80d18ca 100644
+--- a/rtc_tools/BUILD.gn
++++ b/rtc_tools/BUILD.gn
+@@ -174,13 +174,9 @@ if (!is_component_build) {
+     deps = [
+       "..//api/video_codecs:video_decoder_factory_template",
+       "..//api/video_codecs:video_decoder_factory_template_dav1d_adapter",
+-      "..//api/video_codecs:video_decoder_factory_template_libvpx_vp8_adapter",
+-      "..//api/video_codecs:video_decoder_factory_template_libvpx_vp9_adapter",
+       "..//api/video_codecs:video_decoder_factory_template_open_h264_adapter",
+       "..//api/video_codecs:video_encoder_factory_template",
+       "..//api/video_codecs:video_encoder_factory_template_libaom_av1_adapter",
+-      "..//api/video_codecs:video_encoder_factory_template_libvpx_vp8_adapter",
+-      "..//api/video_codecs:video_encoder_factory_template_libvpx_vp9_adapter",
+       "..//api/video_codecs:video_encoder_factory_template_open_h264_adapter",
+       "..//test/network:simulated_network",
+       "../api:create_frame_generator",
+@@ -212,6 +208,16 @@ if (!is_component_build) {
+       "//third_party/abseil-cpp/absl/flags:usage",
+       "//third_party/abseil-cpp/absl/strings",
+     ]
++
++    if (rtc_build_libvpx) {
++      deps += [
++        "..//api/video_codecs:video_decoder_factory_template_libvpx_vp8_adapter",
++        "..//api/video_codecs:video_decoder_factory_template_libvpx_vp9_adapter",
++        "..//api/video_codecs:video_encoder_factory_template_libvpx_vp8_adapter",
++        "..//api/video_codecs:video_encoder_factory_template_libvpx_vp9_adapter",
++      ]
++    }
++
+     if (build_with_chromium) {
+       # When building from Chromium, WebRTC's metrics and field trial
+       # implementations need to be replaced by the Chromium ones.
+diff --git a/rtc_tools/data_channel_benchmark/BUILD.gn b/rtc_tools/data_channel_benchmark/BUILD.gn
+index a8804a8dda..caed71d298 100644
+--- a/rtc_tools/data_channel_benchmark/BUILD.gn
++++ b/rtc_tools/data_channel_benchmark/BUILD.gn
+@@ -55,13 +55,9 @@ rtc_executable("data_channel_benchmark") {
+     "../../api/video_codecs:video_codecs_api",
+     "../../api/video_codecs:video_decoder_factory_template",
+     "../../api/video_codecs:video_decoder_factory_template_dav1d_adapter",
+-    "../../api/video_codecs:video_decoder_factory_template_libvpx_vp8_adapter",
+-    "../../api/video_codecs:video_decoder_factory_template_libvpx_vp9_adapter",
+     "../../api/video_codecs:video_decoder_factory_template_open_h264_adapter",
+     "../../api/video_codecs:video_encoder_factory_template",
+     "../../api/video_codecs:video_encoder_factory_template_libaom_av1_adapter",
+-    "../../api/video_codecs:video_encoder_factory_template_libvpx_vp8_adapter",
+-    "../../api/video_codecs:video_encoder_factory_template_libvpx_vp9_adapter",
+     "../../api/video_codecs:video_encoder_factory_template_open_h264_adapter",
+     "../../rtc_base:checks",
+     "../../rtc_base:copy_on_write_buffer",
+diff --git a/test/peer_scenario/BUILD.gn b/test/peer_scenario/BUILD.gn
+index 41bcd65f0b..889ed61dc2 100644
+--- a/test/peer_scenario/BUILD.gn
++++ b/test/peer_scenario/BUILD.gn
+@@ -51,13 +51,9 @@ if (rtc_include_tests) {
+       "../../api/video_codecs:video_codecs_api",
+       "../../api/video_codecs:video_decoder_factory_template",
+       "../../api/video_codecs:video_decoder_factory_template_dav1d_adapter",
+-      "../../api/video_codecs:video_decoder_factory_template_libvpx_vp8_adapter",
+-      "../../api/video_codecs:video_decoder_factory_template_libvpx_vp9_adapter",
+       "../../api/video_codecs:video_decoder_factory_template_open_h264_adapter",
+       "../../api/video_codecs:video_encoder_factory_template",
+       "../../api/video_codecs:video_encoder_factory_template_libaom_av1_adapter",
+-      "../../api/video_codecs:video_encoder_factory_template_libvpx_vp8_adapter",
+-      "../../api/video_codecs:video_encoder_factory_template_libvpx_vp9_adapter",
+       "../../api/video_codecs:video_encoder_factory_template_open_h264_adapter",
+       "../../call:payload_type_picker",
+       "../../call:rtp_interfaces",
+-- 
+2.34.1
+
