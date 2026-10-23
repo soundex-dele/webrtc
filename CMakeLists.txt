@@ -1,39 +1,19 @@
 cmake_minimum_required(VERSION 3.18)
 project(webrtc_peerconnection_demo)
 
-set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-# ============================================================================
-# Compiler flags (from compile_commands.json)
-# ============================================================================
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -fPIC -pthread")
-set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wall -fPIC -pthread")
+# WebRTC M137 uses C++20 (including designated initializers).
+set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_EXTENSIONS OFF)
+set(CMAKE_POSITION_INDEPENDENT_CODE ON)
+include(cmake/platform.cmake)
 
-# SIMD flags - SSE3 is used by most WebRTC files
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -msse3")
-set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -msse3")
-
-# Release optimization flags
-set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -O2 -fdata-sections -ffunction-sections")
-set(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE} -O2 -fdata-sections -ffunction-sections")
-
-# Visibility
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fvisibility=hidden")
-set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fvisibility=hidden")
-
-# ============================================================================
-# Compile definitions (migrated from compile_commands.json)
 # ============================================================================
 add_compile_definitions(
     # Basic platform definitions
-    WEBRTC_POSIX
-    WEBRTC_LINUX
     __STDC_CONSTANT_MACROS
     __STDC_FORMAT_MACROS
-    _FILE_OFFSET_BITS=64
-    _LARGEFILE_SOURCE
-    _LARGEFILE64_SOURCE
 
     # WebRTC core definitions
     RTC_DISABLE_TRACE_EVENTS
@@ -49,9 +29,10 @@ add_compile_definitions(
     WEBRTC_OPUS_VARIABLE_COMPLEXITY=0
     WEBRTC_OPUS_SUPPORT_120MS_PTIME=1
     WEBRTC_CODEC_OPUS
-    WEBRTC_DUMMY_FILE_DEVICES
 
     # Video codec support
+    WEBRTC_EXTERNAL_DAV1D
+    RTC_USE_LIBAOM_AV1_ENCODER
     RTC_DAV1D_IN_INTERNAL_DECODER_FACTORY
     RTC_ENABLE_VP9
     RTC_ENABLE_H265
@@ -65,18 +46,12 @@ add_compile_definitions(
     LIBYUV_DISABLE_SME
 
     # System/Platform definitions
-    HAVE_PTHREAD
-    HAVE_PTHREAD_SETAFFINITY_NP=1
-    HAVE_PTHREAD_GETAFFINITY_NP=1
     HAVE_LITTLE_ENDIAN
-    HAVE_NETINET_IN_H
-    HAVE_ARPA_INET_H
     HAVE_INTTYPES_H
     HAVE_STDINT_H
     HAVE_STDLIB_H
     HAVE_STRING_H
     HAVE_SYS_TYPES_H
-    HAVE_UNISTD_H
     HAVE_INT8_T
     HAVE_INT16_T
     HAVE_INT32_T
@@ -87,7 +62,6 @@ add_compile_definitions(
 
     # Crypto
     OPENSSL
-    SRTP_LINUX
     GCM
 
     # ABSL definitions
@@ -95,7 +69,6 @@ add_compile_definitions(
     ABSL_FLAGS_STRIP_NAMES=0
 
     # Build configuration
-    NDEBUG
     NVALGRIND
     DYNAMIC_ANNOTATIONS_ENABLED=0
     PROTOBUF_ENABLE_DEBUG_LOGGING_MAY_LEAK_PII=0
@@ -110,7 +83,7 @@ set(WEBRTC_ROOT ${CMAKE_CURRENT_SOURCE_DIR})
 # ============================================================================
 # Include directories (migrated from compile_commands.json)
 # ============================================================================
-include_directories(
+set(WEBRTC_INCLUDE_DIRS
     ${WEBRTC_ROOT}
     ${WEBRTC_ROOT}/api
     ${WEBRTC_ROOT}/api/crypto
@@ -146,18 +119,9 @@ include_directories(
     # ${WEBRTC_ROOT}/third_party/perfetto/build_config
     # ${WEBRTC_ROOT}/third_party/perfetto
     ${WEBRTC_ROOT}/third_party/libyuv/include
-    ${WEBRTC_ROOT}/third_party/libaom/source/libaom
-    ${WEBRTC_ROOT}/third_party/libaom/source/config
-    ${WEBRTC_ROOT}/third_party/libaom/source/config/linux/x64
-    ${WEBRTC_ROOT}/third_party/libvpx/source/libvpx
-    ${WEBRTC_ROOT}/third_party/libvpx/source/config
-    ${WEBRTC_ROOT}/third_party/libvpx/source/config/linux/x64
     ${WEBRTC_ROOT}/third_party/opus/src/include
-    ${WEBRTC_ROOT}/third_party/opus/src/celt
-    ${WEBRTC_ROOT}/third_party/opus/src/silk
     ${WEBRTC_ROOT}/third_party/protobuf/src
     ${WEBRTC_ROOT}/third_party/re2/src
-    ${WEBRTC_ROOT}/third_party/dav1d/version
     ${WEBRTC_ROOT}/common_audio
     ${WEBRTC_ROOT}/common_audio/resampler
     ${WEBRTC_ROOT}/common_audio/signal_processing
@@ -181,37 +145,9 @@ include_directories(
     ${WEBRTC_ROOT}/media
 )
 
-# Use external OpenSSL
-set(OPENSSL_ROOT_DIR /home/dele/workspace/sdk/thirdpartylib/linux_x86_64/openssl)
-set(OPENSSL_INCLUDE_DIR ${OPENSSL_ROOT_DIR}/include)
-set(OPENSSL_CRYPTO_LIBRARY ${OPENSSL_ROOT_DIR}/lib/libcrypto.a)
-set(OPENSSL_SSL_LIBRARY ${OPENSSL_ROOT_DIR}/lib/libssl.a)
-
-find_package(OpenSSL REQUIRED)
-
-# Add OpenSSL include directory from found package
-include_directories(${OPENSSL_INCLUDE_DIR})
-
-# ============================================================================
-# WebRTC source files - Minimal PeerConnection (no media codecs)
-# ============================================================================
-
+# Dependencies are configured with their own platform-aware CMake projects.
+include(cmake/dependencies.cmake)
 set(WEBRTC_SOURCES)
-
-# ----------------------------------------------------------------------------
-# Third-party libraries - 使用 add_subdirectory 方式构建
-# ----------------------------------------------------------------------------
-set(LIBSRTP_BUILD_TESTS OFF CACHE BOOL "Build libsrtp tests" FORCE)
-add_subdirectory(${WEBRTC_ROOT}/third_party/libsrtp EXCLUDE_FROM_ALL)
-
-# Abseil - 源文件已直接包含在WEBRTC_SOURCES中，无需add_subdirectory
-
-# libyuv - 视频格式转换库
-set(UNIT_TEST OFF CACHE BOOL "" FORCE)
-add_subdirectory(${WEBRTC_ROOT}/third_party/libyuv EXCLUDE_FROM_ALL)
-
-# Opus - 音频编解码库
-add_subdirectory(${WEBRTC_ROOT}/third_party/opus EXCLUDE_FROM_ALL)
 
 # ============================================================================
 # SIMD-specific compile flags for individual source files
@@ -228,7 +164,7 @@ set_source_files_properties(
     ${WEBRTC_ROOT}/modules/audio_processing/aec3/matched_filter_avx2.cc
     ${WEBRTC_ROOT}/modules/audio_processing/aec3/vector_math_avx2.cc
     ${WEBRTC_ROOT}/modules/audio_processing/agc2/rnn_vad/vector_math_avx2.cc
-    PROPERTIES COMPILE_FLAGS "-mavx2 -mfma"
+    PROPERTIES COMPILE_OPTIONS "${WEBRTC_AVX2_FLAGS}"
 )
 
 # Create WebRTC static library
@@ -239,134 +175,8 @@ set_source_files_properties(
 # ============================================================================
 
 # ----------------------------------------------------------------------------
-# Abseil - 直接包含源文件到webrtc静态库中
+# Abseil is linked through its CMake targets (see dependencies.cmake).
 # ----------------------------------------------------------------------------
-list(APPEND WEBRTC_SOURCES
-    # absl/base
-    ${WEBRTC_ROOT}/third_party/abseil-cpp/absl/base/internal/cycleclock.cc
-    ${WEBRTC_ROOT}/third_party/abseil-cpp/absl/base/internal/low_level_alloc.cc
-    ${WEBRTC_ROOT}/third_party/abseil-cpp/absl/base/internal/raw_logging.cc
-    ${WEBRTC_ROOT}/third_party/abseil-cpp/absl/base/internal/spinlock.cc
-    ${WEBRTC_ROOT}/third_party/abseil-cpp/absl/base/internal/spinlock_wait.cc
-    ${WEBRTC_ROOT}/third_party/abseil-cpp/absl/base/internal/sysinfo.cc
-    ${WEBRTC_ROOT}/third_party/abseil-cpp/absl/base/internal/thread_identity.cc
-    ${WEBRTC_ROOT}/third_party/abseil-cpp/absl/base/internal/throw_delegate.cc
-    ${WEBRTC_ROOT}/third_party/abseil-cpp/absl/base/internal/unscaledcycleclock.cc
-    ${WEBRTC_ROOT}/third_party/abseil-cpp/absl/base/log_severity.cc
-    # absl/strings
-    ${WEBRTC_ROOT}/third_party/abseil-cpp/absl/strings/ascii.cc
-    ${WEBRTC_ROOT}/third_party/abseil-cpp/absl/strings/charconv.cc
-    ${WEBRTC_ROOT}/third_party/abseil-cpp/absl/strings/cord.cc
-    ${WEBRTC_ROOT}/third_party/abseil-cpp/absl/strings/cord_analysis.cc
-    ${WEBRTC_ROOT}/third_party/abseil-cpp/absl/strings/escaping.cc
-    ${WEBRTC_ROOT}/third_party/abseil-cpp/absl/strings/match.cc
-    ${WEBRTC_ROOT}/third_party/abseil-cpp/absl/strings/numbers.cc
-    ${WEBRTC_ROOT}/third_party/abseil-cpp/absl/strings/str_cat.cc
-    ${WEBRTC_ROOT}/third_party/abseil-cpp/absl/strings/str_replace.cc
-    ${WEBRTC_ROOT}/third_party/abseil-cpp/absl/strings/str_split.cc
-    ${WEBRTC_ROOT}/third_party/abseil-cpp/absl/strings/string_view.cc
-    ${WEBRTC_ROOT}/third_party/abseil-cpp/absl/strings/substitute.cc
-    # absl/strings/internal
-    ${WEBRTC_ROOT}/third_party/abseil-cpp/absl/strings/internal/charconv_bigint.cc
-    ${WEBRTC_ROOT}/third_party/abseil-cpp/absl/strings/internal/charconv_parse.cc
-    ${WEBRTC_ROOT}/third_party/abseil-cpp/absl/strings/internal/cord_internal.cc
-    ${WEBRTC_ROOT}/third_party/abseil-cpp/absl/strings/internal/cord_rep_btree.cc
-    ${WEBRTC_ROOT}/third_party/abseil-cpp/absl/strings/internal/cord_rep_btree_navigator.cc
-    ${WEBRTC_ROOT}/third_party/abseil-cpp/absl/strings/internal/cord_rep_btree_reader.cc
-    ${WEBRTC_ROOT}/third_party/abseil-cpp/absl/strings/internal/cord_rep_consume.cc
-    ${WEBRTC_ROOT}/third_party/abseil-cpp/absl/strings/internal/cord_rep_crc.cc
-    ${WEBRTC_ROOT}/third_party/abseil-cpp/absl/strings/internal/cordz_functions.cc
-    ${WEBRTC_ROOT}/third_party/abseil-cpp/absl/strings/internal/cordz_handle.cc
-    ${WEBRTC_ROOT}/third_party/abseil-cpp/absl/strings/internal/cordz_info.cc
-    ${WEBRTC_ROOT}/third_party/abseil-cpp/absl/strings/internal/cordz_sample_token.cc
-    ${WEBRTC_ROOT}/third_party/abseil-cpp/absl/strings/internal/damerau_levenshtein_distance.cc
-    ${WEBRTC_ROOT}/third_party/abseil-cpp/absl/strings/internal/escaping.cc
-    ${WEBRTC_ROOT}/third_party/abseil-cpp/absl/strings/internal/memutil.cc
-    ${WEBRTC_ROOT}/third_party/abseil-cpp/absl/strings/internal/ostringstream.cc
-    ${WEBRTC_ROOT}/third_party/abseil-cpp/absl/strings/internal/pow10_helper.cc
-    ${WEBRTC_ROOT}/third_party/abseil-cpp/absl/strings/internal/stringify_sink.cc
-    ${WEBRTC_ROOT}/third_party/abseil-cpp/absl/strings/internal/utf8.cc
-    # absl/strings/internal/str_format
-    ${WEBRTC_ROOT}/third_party/abseil-cpp/absl/strings/internal/str_format/arg.cc
-    ${WEBRTC_ROOT}/third_party/abseil-cpp/absl/strings/internal/str_format/bind.cc
-    ${WEBRTC_ROOT}/third_party/abseil-cpp/absl/strings/internal/str_format/extension.cc
-    ${WEBRTC_ROOT}/third_party/abseil-cpp/absl/strings/internal/str_format/float_conversion.cc
-    ${WEBRTC_ROOT}/third_party/abseil-cpp/absl/strings/internal/str_format/output.cc
-    ${WEBRTC_ROOT}/third_party/abseil-cpp/absl/strings/internal/str_format/parser.cc
-    # absl/numeric
-    ${WEBRTC_ROOT}/third_party/abseil-cpp/absl/numeric/int128.cc
-    # absl/hash
-    ${WEBRTC_ROOT}/third_party/abseil-cpp/absl/hash/internal/hash.cc
-    ${WEBRTC_ROOT}/third_party/abseil-cpp/absl/hash/internal/city.cc
-    ${WEBRTC_ROOT}/third_party/abseil-cpp/absl/hash/internal/low_level_hash.cc
-    # absl/container
-    ${WEBRTC_ROOT}/third_party/abseil-cpp/absl/container/internal/raw_hash_set.cc
-    ${WEBRTC_ROOT}/third_party/abseil-cpp/absl/container/internal/hashtablez_sampler.cc
-    ${WEBRTC_ROOT}/third_party/abseil-cpp/absl/container/internal/hashtablez_sampler_force_weak_definition.cc
-    # absl/synchronization
-    ${WEBRTC_ROOT}/third_party/abseil-cpp/absl/synchronization/mutex.cc
-    ${WEBRTC_ROOT}/third_party/abseil-cpp/absl/synchronization/barrier.cc
-    ${WEBRTC_ROOT}/third_party/abseil-cpp/absl/synchronization/blocking_counter.cc
-    ${WEBRTC_ROOT}/third_party/abseil-cpp/absl/synchronization/notification.cc
-    # absl/synchronization/internal
-    ${WEBRTC_ROOT}/third_party/abseil-cpp/absl/synchronization/internal/create_thread_identity.cc
-    ${WEBRTC_ROOT}/third_party/abseil-cpp/absl/synchronization/internal/futex_waiter.cc
-    ${WEBRTC_ROOT}/third_party/abseil-cpp/absl/synchronization/internal/graphcycles.cc
-    ${WEBRTC_ROOT}/third_party/abseil-cpp/absl/synchronization/internal/kernel_timeout.cc
-    ${WEBRTC_ROOT}/third_party/abseil-cpp/absl/synchronization/internal/per_thread_sem.cc
-    ${WEBRTC_ROOT}/third_party/abseil-cpp/absl/synchronization/internal/pthread_waiter.cc
-    ${WEBRTC_ROOT}/third_party/abseil-cpp/absl/synchronization/internal/sem_waiter.cc
-    ${WEBRTC_ROOT}/third_party/abseil-cpp/absl/synchronization/internal/stdcpp_waiter.cc
-    ${WEBRTC_ROOT}/third_party/abseil-cpp/absl/synchronization/internal/waiter_base.cc
-    ${WEBRTC_ROOT}/third_party/abseil-cpp/absl/synchronization/internal/win32_waiter.cc
-    # absl/time
-    ${WEBRTC_ROOT}/third_party/abseil-cpp/absl/time/clock.cc
-    ${WEBRTC_ROOT}/third_party/abseil-cpp/absl/time/civil_time.cc
-    ${WEBRTC_ROOT}/third_party/abseil-cpp/absl/time/duration.cc
-    ${WEBRTC_ROOT}/third_party/abseil-cpp/absl/time/format.cc
-    ${WEBRTC_ROOT}/third_party/abseil-cpp/absl/time/time.cc
-    # absl/time/internal/cctz
-    ${WEBRTC_ROOT}/third_party/abseil-cpp/absl/time/internal/cctz/src/civil_time_detail.cc
-    ${WEBRTC_ROOT}/third_party/abseil-cpp/absl/time/internal/cctz/src/time_zone_if.cc
-    ${WEBRTC_ROOT}/third_party/abseil-cpp/absl/time/internal/cctz/src/time_zone_fixed.cc
-    ${WEBRTC_ROOT}/third_party/abseil-cpp/absl/time/internal/cctz/src/time_zone_libc.cc
-    ${WEBRTC_ROOT}/third_party/abseil-cpp/absl/time/internal/cctz/src/time_zone_lookup.cc
-    ${WEBRTC_ROOT}/third_party/abseil-cpp/absl/time/internal/cctz/src/time_zone_posix.cc
-    ${WEBRTC_ROOT}/third_party/abseil-cpp/absl/time/internal/cctz/src/time_zone_info.cc
-    ${WEBRTC_ROOT}/third_party/abseil-cpp/absl/time/internal/cctz/src/time_zone_impl.cc
-    ${WEBRTC_ROOT}/third_party/abseil-cpp/absl/time/internal/cctz/src/time_zone_format.cc
-    ${WEBRTC_ROOT}/third_party/abseil-cpp/absl/time/internal/cctz/src/zone_info_source.cc
-    # absl/log (absl_log.cc doesn't exist, removed)
-    ${WEBRTC_ROOT}/third_party/abseil-cpp/absl/log/die_if_null.cc
-    ${WEBRTC_ROOT}/third_party/abseil-cpp/absl/log/flags.cc
-    ${WEBRTC_ROOT}/third_party/abseil-cpp/absl/log/globals.cc
-    ${WEBRTC_ROOT}/third_party/abseil-cpp/absl/log/initialize.cc
-    ${WEBRTC_ROOT}/third_party/abseil-cpp/absl/log/log_sink.cc
-    # absl/log/internal
-    ${WEBRTC_ROOT}/third_party/abseil-cpp/absl/log/internal/check_op.cc
-    ${WEBRTC_ROOT}/third_party/abseil-cpp/absl/log/internal/conditions.cc
-    ${WEBRTC_ROOT}/third_party/abseil-cpp/absl/log/internal/fnmatch.cc
-    ${WEBRTC_ROOT}/third_party/abseil-cpp/absl/log/internal/log_format.cc
-    ${WEBRTC_ROOT}/third_party/abseil-cpp/absl/log/internal/log_message.cc
-    ${WEBRTC_ROOT}/third_party/abseil-cpp/absl/log/internal/log_sink_set.cc
-    ${WEBRTC_ROOT}/third_party/abseil-cpp/absl/log/internal/nullguard.cc
-    ${WEBRTC_ROOT}/third_party/abseil-cpp/absl/log/internal/proto.cc
-    ${WEBRTC_ROOT}/third_party/abseil-cpp/absl/log/internal/structured_proto.cc
-    ${WEBRTC_ROOT}/third_party/abseil-cpp/absl/log/internal/vlog_config.cc
-    ${WEBRTC_ROOT}/third_party/abseil-cpp/absl/log/internal/globals.cc
-    # absl/debugging
-    ${WEBRTC_ROOT}/third_party/abseil-cpp/absl/debugging/stacktrace.cc
-    ${WEBRTC_ROOT}/third_party/abseil-cpp/absl/debugging/symbolize.cc
-    ${WEBRTC_ROOT}/third_party/abseil-cpp/absl/debugging/internal/demangle.cc
-    ${WEBRTC_ROOT}/third_party/abseil-cpp/absl/debugging/internal/demangle_rust.cc
-    ${WEBRTC_ROOT}/third_party/abseil-cpp/absl/debugging/internal/decode_rust_punycode.cc
-    ${WEBRTC_ROOT}/third_party/abseil-cpp/absl/debugging/internal/utf8_for_code_point.cc
-    ${WEBRTC_ROOT}/third_party/abseil-cpp/absl/debugging/internal/address_is_readable.cc
-    ${WEBRTC_ROOT}/third_party/abseil-cpp/absl/debugging/internal/elf_mem_image.cc
-    ${WEBRTC_ROOT}/third_party/abseil-cpp/absl/debugging/internal/examine_stack.cc
-    ${WEBRTC_ROOT}/third_party/abseil-cpp/absl/debugging/internal/vdso_support.cc
-)
-
 # ----------------------------------------------------------------------------
 # API - Additional files
 # ----------------------------------------------------------------------------
@@ -400,26 +210,6 @@ list(APPEND WEBRTC_SOURCES
     ${WEBRTC_ROOT}/api/ice_transport_factory.cc
     ${WEBRTC_ROOT}/api/neteq/custom_neteq_factory.cc
     ${WEBRTC_ROOT}/api/neteq/default_neteq_controller_factory.cc
-    ${WEBRTC_ROOT}/api/test/create_frame_generator.cc
-    ${WEBRTC_ROOT}/api/test/create_peer_connection_quality_test_frame_generator.cc
-    ${WEBRTC_ROOT}/api/test/frame_generator_interface.cc
-    ${WEBRTC_ROOT}/api/test/metrics/chrome_perf_dashboard_metrics_exporter.cc
-    ${WEBRTC_ROOT}/api/test/metrics/global_metrics_logger_and_exporter.cc
-    ${WEBRTC_ROOT}/api/test/metrics/metric.cc
-    ${WEBRTC_ROOT}/api/test/metrics/metrics_accumulator.cc
-    ${WEBRTC_ROOT}/api/test/metrics/metrics_logger.cc
-    ${WEBRTC_ROOT}/api/test/metrics/metrics_set_proto_file_exporter.cc
-    ${WEBRTC_ROOT}/api/test/metrics/print_result_proxy_metrics_exporter.cc
-    ${WEBRTC_ROOT}/api/test/metrics/stdout_metrics_exporter.cc
-    ${WEBRTC_ROOT}/api/test/neteq_simulator.cc
-    ${WEBRTC_ROOT}/api/test/network_emulation/create_cross_traffic.cc
-    ${WEBRTC_ROOT}/api/test/network_emulation/ecn_marking_counter.cc
-    ${WEBRTC_ROOT}/api/test/network_emulation/network_emulation_interfaces.cc
-    ${WEBRTC_ROOT}/api/test/network_emulation_manager.cc
-    ${WEBRTC_ROOT}/api/test/pclf/media_configuration.cc
-    ${WEBRTC_ROOT}/api/test/pclf/peer_configurer.cc
-    ${WEBRTC_ROOT}/api/test/time_controller.cc
-    ${WEBRTC_ROOT}/api/test/video/test_video_track_source.cc
     ${WEBRTC_ROOT}/api/video_codecs/builtin_video_decoder_factory.cc
     ${WEBRTC_ROOT}/api/video_codecs/builtin_video_encoder_factory.cc
     ${WEBRTC_ROOT}/api/video_codecs/libaom_av1_encoder_factory.cc
@@ -775,7 +565,6 @@ list(APPEND WEBRTC_SOURCES
     ${WEBRTC_ROOT}/modules/audio_processing/agc/loudness_histogram.cc
     ${WEBRTC_ROOT}/modules/audio_processing/agc/utility.cc
     ${WEBRTC_ROOT}/modules/audio_processing/agc2/adaptive_digital_gain_controller.cc
-    ${WEBRTC_ROOT}/modules/audio_processing/agc2/agc2_testing_common.cc
     ${WEBRTC_ROOT}/modules/audio_processing/agc2/biquad_filter.cc
     ${WEBRTC_ROOT}/modules/audio_processing/agc2/clipping_predictor.cc
     ${WEBRTC_ROOT}/modules/audio_processing/agc2/clipping_predictor_level_buffer.cc
@@ -866,7 +655,6 @@ list(APPEND WEBRTC_SOURCES
     ${WEBRTC_ROOT}/modules/rtp_rtcp/source/dtmf_queue.cc
     ${WEBRTC_ROOT}/modules/rtp_rtcp/source/fec_private_tables_bursty.cc
     ${WEBRTC_ROOT}/modules/rtp_rtcp/source/fec_private_tables_random.cc
-    ${WEBRTC_ROOT}/modules/rtp_rtcp/source/fec_test_helper.cc
     ${WEBRTC_ROOT}/modules/rtp_rtcp/source/flexfec_03_header_reader_writer.cc
     ${WEBRTC_ROOT}/modules/rtp_rtcp/source/flexfec_header_reader_writer.cc
     ${WEBRTC_ROOT}/modules/rtp_rtcp/source/flexfec_receiver.cc
@@ -915,7 +703,6 @@ list(APPEND WEBRTC_SOURCES
     ${WEBRTC_ROOT}/modules/rtp_rtcp/source/rtp_packet_received.cc
     ${WEBRTC_ROOT}/modules/rtp_rtcp/source/rtp_packet_send_info.cc
     ${WEBRTC_ROOT}/modules/rtp_rtcp/source/rtp_packetizer_av1.cc
-    ${WEBRTC_ROOT}/modules/rtp_rtcp/source/rtp_packetizer_av1_test_helper.cc
     ${WEBRTC_ROOT}/modules/rtp_rtcp/source/rtp_packetizer_h265.cc
     ${WEBRTC_ROOT}/modules/rtp_rtcp/source/rtp_rtcp_impl2.cc
     ${WEBRTC_ROOT}/modules/rtp_rtcp/source/rtp_sender_audio.cc
@@ -1031,21 +818,17 @@ list(APPEND WEBRTC_SOURCES
 # NET - Additional files
 # ----------------------------------------------------------------------------
 list(APPEND WEBRTC_SOURCES
-    ${WEBRTC_ROOT}/net/dcsctp/common/handover_testing.cc
     ${WEBRTC_ROOT}/net/dcsctp/public/dcsctp_handover_state.cc
 )
 # ----------------------------------------------------------------------------
 # P2P - Additional files
 # ----------------------------------------------------------------------------
 list(APPEND WEBRTC_SOURCES
-    ${WEBRTC_ROOT}/p2p/test/stun_server.cc
-    ${WEBRTC_ROOT}/p2p/test/turn_server.cc
 )
 # ----------------------------------------------------------------------------
 # STATS - Additional files
 # ----------------------------------------------------------------------------
 list(APPEND WEBRTC_SOURCES
-    ${WEBRTC_ROOT}/stats/test/rtc_test_stats.cc
 )
 # ----------------------------------------------------------------------------
 # BUILD - Additional files
@@ -1172,9 +955,6 @@ list(APPEND WEBRTC_SOURCES
     ${WEBRTC_ROOT}/rtc_base/data_rate_limiter.cc
     ${WEBRTC_ROOT}/rtc_base/memory_usage.cc
     ${WEBRTC_ROOT}/rtc_base/proxy_server.cc
-    ${WEBRTC_ROOT}/rtc_base/test_client.cc
-    ${WEBRTC_ROOT}/rtc_base/test_echo_server.cc
-    ${WEBRTC_ROOT}/rtc_base/test_utils.cc
     ${WEBRTC_ROOT}/rtc_base/third_party/base64/base64.cc
     ${WEBRTC_ROOT}/rtc_base/timestamp_aligner.cc
     ${WEBRTC_ROOT}/rtc_base/trace_categories.cc
@@ -1374,6 +1154,7 @@ list(APPEND WEBRTC_SOURCES
     ${WEBRTC_ROOT}/common_audio/resampler/sinc_resampler.cc
     ${WEBRTC_ROOT}/common_audio/signal_processing/dot_product_with_scale.cc
     ${WEBRTC_ROOT}/common_audio/smoothing_filter.cc
+    ${WEBRTC_ROOT}/common_audio/third_party/ooura/fft_size_128/ooura_fft_sse2.cc
     ${WEBRTC_ROOT}/common_audio/third_party/ooura/fft_size_128/ooura_fft.cc
     ${WEBRTC_ROOT}/common_audio/third_party/ooura/fft_size_256/fft4g.cc
     ${WEBRTC_ROOT}/common_audio/vad/vad.cc
@@ -1825,7 +1606,6 @@ list(APPEND WEBRTC_SOURCES
     ${WEBRTC_ROOT}/rtc_base/log_sinks.cc
     ${WEBRTC_ROOT}/rtc_base/memory_stream.cc
     ${WEBRTC_ROOT}/rtc_base/net_helper.cc
-    ${WEBRTC_ROOT}/rtc_base/net_test_helpers.cc
     ${WEBRTC_ROOT}/rtc_base/network_monitor.cc
     ${WEBRTC_ROOT}/rtc_base/network_monitor_factory.cc
     ${WEBRTC_ROOT}/rtc_base/numerics/event_rate_counter.cc
@@ -1838,31 +1618,69 @@ list(APPEND WEBRTC_SOURCES
     ${WEBRTC_ROOT}/rtc_base/server_socket_adapters.cc
 )
 
+# Voice activity processing still uses these iSAC helpers even though the iSAC
+# codec itself is no longer part of the built-in codec factory.
+list(APPEND WEBRTC_SOURCES
+    ${WEBRTC_ROOT}/modules/audio_coding/codecs/isac/main/source/filter_functions.c
+    ${WEBRTC_ROOT}/modules/audio_coding/codecs/isac/main/source/isac_vad.c
+    ${WEBRTC_ROOT}/modules/audio_coding/codecs/isac/main/source/pitch_estimator.c
+    ${WEBRTC_ROOT}/modules/audio_coding/codecs/isac/main/source/pitch_filter.c
+)
+
+include(cmake/platform_sources.cmake)
+list(REMOVE_DUPLICATES WEBRTC_SOURCES)
+# The x64 manifest includes AVX2 implementations. Enable their runtime feature
+# detection while keeping the dispatcher itself compiled for the baseline CPU.
+set_source_files_properties(${WEBRTC_ROOT}/system_wrappers/source/cpu_features.cc
+    PROPERTIES COMPILE_DEFINITIONS WEBRTC_ENABLE_AVX2)
 add_library(webrtc STATIC ${WEBRTC_SOURCES})
+add_library(WebRTC::webrtc ALIAS webrtc)
+set_target_properties(webrtc PROPERTIES
+    ARCHIVE_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/$<CONFIG>")
+target_compile_features(webrtc PUBLIC cxx_std_20)
+target_include_directories(webrtc PRIVATE ${WEBRTC_INCLUDE_DIRS})
+if(MSVC)
+    target_compile_options(webrtc PRIVATE /MP8)
+endif()
+target_include_directories(webrtc PUBLIC
+    "${WEBRTC_ROOT}"
+    "${WEBRTC_ROOT}/third_party/abseil-cpp"
+    "${WEBRTC_ROOT}/third_party/libyuv/include")
+target_compile_definitions(webrtc PUBLIC WEBRTC_ALLOW_DEPRECATED_NAMESPACES)
+if(WIN32)
+    target_compile_definitions(webrtc PUBLIC WEBRTC_WIN NOMINMAX WIN32_LEAN_AND_MEAN)
+else()
+    target_compile_definitions(webrtc PUBLIC WEBRTC_POSIX WEBRTC_LINUX)
+endif()
+target_link_libraries(webrtc PUBLIC
+    srtp yuv opus OpenSSL::SSL OpenSSL::Crypto
+    absl::base absl::flags absl::flags_parse absl::flat_hash_map
+    absl::flat_hash_set absl::log absl::check absl::strings
+    absl::str_format absl::synchronization absl::time absl::optional
+    absl::any_invocable absl::bind_front absl::crc32c
+    crc32c jsoncpp_static webrtc_pffft webrtc_rnnoise
+    unofficial::libvpx::libvpx aom webrtc_dav1d Threads::Threads)
+if(WIN32)
+    target_link_libraries(webrtc PUBLIC
+        ws2_32 winmm iphlpapi secur32 crypt32 bcrypt
+        dmoguids wmcodecdspuuid amstrmid msdmo ole32 oleaut32
+        strmiids user32 advapi32 shell32)
+else()
+    target_link_libraries(webrtc PUBLIC ${CMAKE_DL_LIBS} m)
+endif()
 
-# Link libraries for WebRTC
-# 注意: Abseil符号已直接打包进webrtc静态库中，无需链接absl::目标
-target_link_libraries(webrtc
-    srtp                    # libsrtp
-    yuv                     # libyuv
-    opus                    # opus audio codec
-    OpenSSL::Crypto
-    OpenSSL::SSL
-    pthread
-    dl
-    m
-)
-
-# Add demo executable
-add_executable(peerconnection_demo
-    demo/peerconnection_demo.cc
-)
-
-target_link_libraries(peerconnection_demo
-    webrtc
-    pthread
-    dl
-)
-
-# Install target
-install(TARGETS peerconnection_demo DESTINATION bin)
+option(WEBRTC_BUILD_DEMO "Build the PeerConnection smoke test" ON)
+if(WEBRTC_BUILD_DEMO)
+    add_executable(peerconnection_demo demo/peerconnection_demo.cc)
+    set_target_properties(peerconnection_demo PROPERTIES
+        RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/$<CONFIG>")
+    target_link_libraries(peerconnection_demo PRIVATE WebRTC::webrtc)
+    enable_testing()
+    add_test(NAME peerconnection_smoke COMMAND peerconnection_demo)
+    set_tests_properties(peerconnection_smoke PROPERTIES TIMEOUT 30)
+    add_executable(matched_filter_smoke test/cmake/matched_filter_smoke.cc)
+    target_link_libraries(matched_filter_smoke PRIVATE WebRTC::webrtc)
+    add_test(NAME matched_filter_smoke COMMAND matched_filter_smoke)
+    set_tests_properties(matched_filter_smoke PROPERTIES TIMEOUT 30 SKIP_RETURN_CODE 77)
+    install(TARGETS peerconnection_demo DESTINATION bin)
+endif()

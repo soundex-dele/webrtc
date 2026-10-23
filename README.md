@@ -25,6 +25,8 @@ This repository contains a fork of WebRTC from Google with various improvements.
 ### Windows
 
 - Fixed unable to acquire Mic when built-in AEC is enabled [#29](https://github.com/webrtc-sdk/webrtc/pull/29)
+- On `m137_dev`, build with Visual Studio 2022 and CMake using the
+  [Windows CMake instructions](docs/native-code/development/windows-cmake.md).
 
 ## LICENSE
 

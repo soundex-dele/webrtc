@@ -8,11 +8,29 @@
 #include <string>
 
 #include "api/create_peerconnection_factory.h"
+#include "api/audio/audio_device.h"
+#include "api/enable_media_with_defaults.h"
 #include "api/peer_connection_interface.h"
 #include "api/scoped_refptr.h"
 #include "api/task_queue/default_task_queue_factory.h"
 #include "rtc_base/thread.h"
 #include "rtc_base/logging.h"
+#include "rtc_base/ssl_adapter.h"
+#if defined(WEBRTC_WIN)
+#include "rtc_base/win32_socket_init.h"
+#endif
+
+// Keep SSL alive until all factories, connections and worker threads are gone.
+class SslInitializer {
+ public:
+  SslInitializer() : ok_(webrtc::InitializeSSL()) {}
+  ~SslInitializer() {
+    if (ok_) webrtc::CleanupSSL();
+  }
+  bool ok() const { return ok_; }
+ private:
+  bool ok_;
+};
 
 // Simple observer for PeerConnection events
 class DummyPCO : public webrtc::PeerConnectionObserver {
@@ -87,20 +105,32 @@ class DummyCSDO : public webrtc::CreateSessionDescriptionObserver {
 };
 
 int main(int argc, char* argv[]) {
+#if defined(WEBRTC_WIN)
+  webrtc::WinsockInitializer winsock;
+  if (winsock.error() != 0) {
+    std::cerr << "Winsock initialization failed: " << winsock.error() << std::endl;
+    return 1;
+  }
+#endif
+  SslInitializer ssl;
+  if (!ssl.ok()) {
+    std::cerr << "SSL initialization failed" << std::endl;
+    return 1;
+  }
   std::cout << "WebRTC PeerConnection Demo" << std::endl;
   std::cout << "==========================" << std::endl;
 
   // Create signaling thread
   std::unique_ptr<webrtc::Thread> signaling_thread = webrtc::Thread::CreateWithSocketServer();
-  signaling_thread->Start();
+  if (!signaling_thread->Start()) return 1;
 
   // Create network thread
   std::unique_ptr<webrtc::Thread> network_thread = webrtc::Thread::CreateWithSocketServer();
-  network_thread->Start();
+  if (!network_thread->Start()) return 1;
 
   // Create worker thread
   std::unique_ptr<webrtc::Thread> worker_thread = webrtc::Thread::Create();
-  worker_thread->Start();
+  if (!worker_thread->Start()) return 1;
 
   // Create task queue factory
   std::unique_ptr<webrtc::TaskQueueFactory> task_queue_factory =
@@ -113,8 +143,14 @@ int main(int argc, char* argv[]) {
   deps.worker_thread = worker_thread.get();
   deps.task_queue_factory = std::move(task_queue_factory);
 
-  // Note: For a full implementation, you would set up audio/video codecs here
-  // This is a minimal example
+  // Exercise the complete media dependency graph without requiring audio
+  // hardware on the build machine.
+  deps.adm = worker_thread->BlockingCall([&] {
+    return webrtc::AudioDeviceModule::CreateForTest(
+        webrtc::AudioDeviceModule::kDummyAudio, deps.task_queue_factory.get());
+  });
+  if (!deps.adm) return 1;
+  webrtc::EnableMediaWithDefaults(deps);
 
   std::cout << "Creating PeerConnectionFactory..." << std::endl;
   rtc::scoped_refptr<webrtc::PeerConnectionFactoryInterface> factory =
@@ -134,10 +170,7 @@ int main(int argc, char* argv[]) {
   webrtc::PeerConnectionInterface::RTCConfiguration config;
   config.sdp_semantics = webrtc::SdpSemantics::kUnifiedPlan;
 
-  // Add STUN server (Google's public STUN server)
-  webrtc::PeerConnectionInterface::IceServer stun_server;
-  stun_server.uri = "stun:stun.l.google.com:19302";
-  config.servers.push_back(stun_server);
+  // The smoke test needs no external signaling or STUN server.
 
   std::cout << "Creating PeerConnection..." << std::endl;
 
@@ -159,6 +192,17 @@ int main(int argc, char* argv[]) {
 
   std::cout << "PeerConnection created successfully!" << std::endl;
 
+  auto channel_result = pc->CreateDataChannelOrError("smoke", nullptr);
+  if (!channel_result.ok()) {
+    std::cerr << "Failed to create data channel: "
+              << channel_result.error().message() << std::endl;
+    return 1;
+  }
+  auto channel = channel_result.MoveValue();
+  channel->Close();
+  channel = nullptr;
+  std::cout << "Data channel created successfully!" << std::endl;
+
   // Print peer connection statistics
   std::cout << std::endl << "PeerConnection Statistics:" << std::endl;
   std::cout << "  Signaling State: " << pc->signaling_state() << std::endl;
@@ -169,6 +213,10 @@ int main(int argc, char* argv[]) {
 
   std::cout << std::endl << "Demo completed successfully!" << std::endl;
   std::cout << "PeerConnection was created and is ready to use." << std::endl;
+
+  pc->Close();
+  pc = nullptr;
+  factory = nullptr;
 
   return 0;
 }

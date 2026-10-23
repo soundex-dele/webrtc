@@ -136,6 +136,10 @@ set(LIBSRTP_SOURCES
 # Build Static Library
 # ============================================================================
 add_library(srtp STATIC ${LIBSRTP_SOURCES} ${LIBSRTP_HEADERS})
+if(WIN32)
+    # The public crypto headers also select their socket types with this macro.
+    target_compile_definitions(srtp PUBLIC HAVE_WINSOCK2_H)
+endif()
 
 # Link OpenSSL
 if(TARGET OpenSSL::Crypto AND TARGET OpenSSL::SSL)

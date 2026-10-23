@@ -84,14 +84,18 @@ void MatchedFilterCore_AccumulatedError_AVX2(size_t x_start_index,
       s_inst_256_8 = _mm256_mul_ps(h_k_8, x_k_8);
       s_inst_hadd_256 = _mm256_hadd_ps(s_inst_256, s_inst_256_8);
       s_inst_hadd_256 = _mm256_hadd_ps(s_inst_hadd_256, s_inst_hadd_256);
-      s_acum += s_inst_hadd_256[0];
-      e_128[0] = s_acum - y[i];
-      s_acum += s_inst_hadd_256[4];
-      e_128[1] = s_acum - y[i];
-      s_acum += s_inst_hadd_256[1];
-      e_128[2] = s_acum - y[i];
-      s_acum += s_inst_hadd_256[5];
-      e_128[3] = s_acum - y[i];
+      // MSVC represents SIMD vectors as structs, without operator[].
+      float sums[8];
+      _mm256_storeu_ps(sums, s_inst_hadd_256);
+      s_acum += sums[0];
+      const float e0 = s_acum - y[i];
+      s_acum += sums[4];
+      const float e1 = s_acum - y[i];
+      s_acum += sums[1];
+      const float e2 = s_acum - y[i];
+      s_acum += sums[5];
+      const float e3 = s_acum - y[i];
+      e_128 = _mm_setr_ps(e0, e1, e2, e3);
 
       __m128 acum_error = _mm_load_ps(a_p);
       acum_error = _mm_fmadd_ps(e_128, e_128, acum_error);
@@ -212,8 +216,8 @@ void MatchedFilterCore_AVX2(size_t x_start_index,
     x2_sum_256 = _mm256_add_ps(x2_sum_256, x2_sum_256_8);
     s_256 = _mm256_add_ps(s_256, s_256_8);
     __m128 sum = hsum_ab(x2_sum_256, s_256);
-    x2_sum += sum[0];
-    s += sum[1];
+    x2_sum += _mm_cvtss_f32(sum);
+    s += _mm_cvtss_f32(_mm_shuffle_ps(sum, sum, _MM_SHUFFLE(1, 1, 1, 1)));
 
     // Compute the matched filter error.
     float e = y[i] - s;

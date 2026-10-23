@@ -25,10 +25,17 @@
 #include "common_video/include/video_frame_buffer.h"
 #include "modules/video_coding/include/video_error_codes.h"
 #include "rtc_base/logging.h"
+#if defined(WEBRTC_EXTERNAL_DAV1D)
+#include "dav1d/data.h"
+#include "dav1d/dav1d.h"
+#include "dav1d/headers.h"
+#include "dav1d/picture.h"
+#else
 #include "third_party/dav1d/libdav1d/include/dav1d/data.h"
 #include "third_party/dav1d/libdav1d/include/dav1d/dav1d.h"
 #include "third_party/dav1d/libdav1d/include/dav1d/headers.h"
 #include "third_party/dav1d/libdav1d/include/dav1d/picture.h"
+#endif
 
 namespace webrtc {
 namespace {

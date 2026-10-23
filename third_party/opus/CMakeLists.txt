@@ -7,9 +7,12 @@ add_compile_definitions(
     OPUS_BUILD
     OPUS_EXPORT=
     USE_ALLOCA
-    HAVE_ALLOCA_H
     ENABLE_HARDENING
 )
+
+if(NOT MSVC)
+    add_compile_definitions(HAVE_ALLOCA_H)
+endif()
 
 # Compile options for x86_64
 if(CMAKE_SYSTEM_PROCESSOR MATCHES "x86_64" OR CMAKE_SIZEOF_VOID_P EQUAL 8)
@@ -230,6 +233,12 @@ if(CMAKE_SYSTEM_PROCESSOR MATCHES "x86_64" OR CMAKE_SYSTEM_PROCESSOR MATCHES "i6
         src/silk/float/x86/inner_product_FLP_avx2.c
     )
 
+    if(MSVC)
+        set_source_files_properties(
+            src/celt/x86/pitch_avx.c
+            src/silk/float/x86/inner_product_FLP_avx2.c
+            PROPERTIES COMPILE_OPTIONS "/arch:AVX2")
+    else()
     # Set SSE compile flags for specific files
     set_source_files_properties(
         src/celt/x86/pitch_sse.c
@@ -258,6 +267,7 @@ if(CMAKE_SYSTEM_PROCESSOR MATCHES "x86_64" OR CMAKE_SYSTEM_PROCESSOR MATCHES "i6
         src/silk/float/x86/inner_product_FLP_avx2.c
         PROPERTIES COMPILE_FLAGS "-mavx2 -mfma"
     )
+    endif()
 endif()
 
 if(CMAKE_SYSTEM_PROCESSOR MATCHES "arm" OR CMAKE_SYSTEM_PROCESSOR MATCHES "aarch64")
@@ -275,10 +285,6 @@ if(CMAKE_SYSTEM_PROCESSOR MATCHES "arm" OR CMAKE_SYSTEM_PROCESSOR MATCHES "aarch
     )
 endif()
 
-# CPU info helper (needed for runtime detection)
-list(APPEND OPUS_SOURCES
-    src/cmake/cpu_info_by_c.c
-)
-
 add_library(opus STATIC ${OPUS_SOURCES})
 add_library(Opus::opus ALIAS opus)
+target_include_directories(opus PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/src/include")
