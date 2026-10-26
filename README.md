@@ -1,5 +1,7 @@
 # WebRTC-SDK
 
+[AV Platform integration design](docs/av-platform-design.md) documents this fork's role, build contracts, native patches, downstream boundaries, and upgrade validation.
+
 This repository contains a fork of WebRTC from Google with various improvements.
 
 ## Main changes
