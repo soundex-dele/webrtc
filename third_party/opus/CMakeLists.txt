@@ -14,8 +14,13 @@ if(NOT MSVC)
     add_compile_definitions(HAVE_ALLOCA_H)
 endif()
 
+# Apple cross builds select their slice with CMAKE_OSX_ARCHITECTURES.
+set(OPUS_TARGET_PROCESSOR "${CMAKE_SYSTEM_PROCESSOR}")
+if(APPLE AND CMAKE_OSX_ARCHITECTURES)
+    set(OPUS_TARGET_PROCESSOR "${CMAKE_OSX_ARCHITECTURES}")
+endif()
 # Compile options for x86_64
-if(CMAKE_SYSTEM_PROCESSOR MATCHES "x86_64" OR CMAKE_SIZEOF_VOID_P EQUAL 8)
+if(OPUS_TARGET_PROCESSOR MATCHES "^(x86_64|AMD64|amd64|i686)$")
     add_compile_definitions(
         OPUS_HAVE_RTCD
         OPUS_X86_MAY_HAVE_SSE
@@ -210,7 +215,7 @@ set(OPUS_SOURCES
 )
 
 # Platform-specific optimizations
-if(CMAKE_SYSTEM_PROCESSOR MATCHES "x86_64" OR CMAKE_SYSTEM_PROCESSOR MATCHES "i686" OR CMAKE_SIZEOF_VOID_P EQUAL 8)
+if(OPUS_TARGET_PROCESSOR MATCHES "^(x86_64|AMD64|amd64|i686)$")
     list(APPEND OPUS_SOURCES
         # CELT x86 optimizations
         src/celt/x86/celt_lpc_sse4_1.c
@@ -270,20 +275,8 @@ if(CMAKE_SYSTEM_PROCESSOR MATCHES "x86_64" OR CMAKE_SYSTEM_PROCESSOR MATCHES "i6
     endif()
 endif()
 
-if(CMAKE_SYSTEM_PROCESSOR MATCHES "arm" OR CMAKE_SYSTEM_PROCESSOR MATCHES "aarch64")
-    list(APPEND OPUS_SOURCES
-        # ARM optimizations
-        src/celt/arm/armcpu.c
-        src/celt/arm/arm_celt_map.c
-        src/silk/arm/arm_silk_map.c
-        src/silk/arm/biquad_alt_neon_intr.c
-        src/silk/arm/NSQ_neon.c
-        src/silk/arm/LPC_inv_pred_gain_neon_intr.c
-        src/silk/arm/NSQ_del_dec_neon_intr.c
-        src/celt/arm/celt_neon_intr.c
-        src/celt/arm/pitch_neon_intr.c
-    )
-endif()
+# ARM64 uses the portable Opus kernels. Its runtime dispatch needs a generated
+# ARM config; do not compile x86 or partially configured ARM dispatch tables.
 
 add_library(opus STATIC ${OPUS_SOURCES})
 add_library(Opus::opus ALIAS opus)

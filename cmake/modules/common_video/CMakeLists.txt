@@ -1,0 +1,22 @@
+# Curated production sources; platform/SIMD selection is applied by webrtc_add_module.
+webrtc_add_module(common_video
+    common_video/bitrate_adjuster.cc
+    common_video/corruption_detection_converters.cc
+    common_video/frame_rate_estimator.cc
+    common_video/framerate_controller.cc
+    common_video/generic_frame_descriptor/generic_frame_info.cc
+    common_video/h264/h264_bitstream_parser.cc
+    common_video/h264/h264_common.cc
+    common_video/h264/pps_parser.cc
+    common_video/h264/sps_parser.cc
+    common_video/h264/sps_vui_rewriter.cc
+    common_video/h265/h265_bitstream_parser.cc
+    common_video/h265/h265_common.cc
+    common_video/h265/h265_inline.cc
+    common_video/h265/h265_pps_parser.cc
+    common_video/h265/h265_sps_parser.cc
+    common_video/h265/h265_vps_parser.cc
+    common_video/libyuv/webrtc_libyuv.cc
+    common_video/video_frame_buffer.cc
+    common_video/video_frame_buffer_pool.cc
+)

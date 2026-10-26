@@ -1,0 +1,41 @@
+# Curated production sources; platform/SIMD selection is applied by webrtc_add_module.
+webrtc_add_module(congestion_control
+    modules/congestion_controller/goog_cc/acknowledged_bitrate_estimator.cc
+    modules/congestion_controller/goog_cc/acknowledged_bitrate_estimator_interface.cc
+    modules/congestion_controller/goog_cc/alr_detector.cc
+    modules/congestion_controller/goog_cc/bitrate_estimator.cc
+    modules/congestion_controller/goog_cc/congestion_window_pushback_controller.cc
+    modules/congestion_controller/goog_cc/delay_based_bwe.cc
+    modules/congestion_controller/goog_cc/goog_cc_network_control.cc
+    modules/congestion_controller/goog_cc/inter_arrival_delta.cc
+    modules/congestion_controller/goog_cc/link_capacity_estimator.cc
+    modules/congestion_controller/goog_cc/loss_based_bandwidth_estimation.cc
+    modules/congestion_controller/goog_cc/loss_based_bwe_v2.cc
+    modules/congestion_controller/goog_cc/probe_bitrate_estimator.cc
+    modules/congestion_controller/goog_cc/probe_controller.cc
+    modules/congestion_controller/goog_cc/robust_throughput_estimator.cc
+    modules/congestion_controller/goog_cc/send_side_bandwidth_estimation.cc
+    modules/congestion_controller/goog_cc/trendline_estimator.cc
+    modules/congestion_controller/receive_side_congestion_controller.cc
+    modules/congestion_controller/remb_throttler.cc
+    modules/congestion_controller/rtp/control_handler.cc
+    modules/congestion_controller/rtp/transport_feedback_adapter.cc
+    modules/congestion_controller/rtp/transport_feedback_demuxer.cc
+    modules/pacing/bitrate_prober.cc
+    modules/pacing/interval_budget.cc
+    modules/pacing/pacing_controller.cc
+    modules/pacing/packet_router.cc
+    modules/pacing/prioritized_packet_queue.cc
+    modules/pacing/task_queue_paced_sender.cc
+    modules/remote_bitrate_estimator/aimd_rate_control.cc
+    modules/remote_bitrate_estimator/bwe_defines.cc
+    modules/remote_bitrate_estimator/congestion_control_feedback_generator.cc
+    modules/remote_bitrate_estimator/congestion_control_feedback_tracker.cc
+    modules/remote_bitrate_estimator/inter_arrival.cc
+    modules/remote_bitrate_estimator/overuse_detector.cc
+    modules/remote_bitrate_estimator/overuse_estimator.cc
+    modules/remote_bitrate_estimator/packet_arrival_map.cc
+    modules/remote_bitrate_estimator/remote_bitrate_estimator_abs_send_time.cc
+    modules/remote_bitrate_estimator/remote_bitrate_estimator_single_stream.cc
+    modules/remote_bitrate_estimator/transport_sequence_number_feedback_generator.cc
+)

@@ -2,7 +2,20 @@
 # controlled. In particular, do not bake a developer's Linux paths into cache.
 find_package(OpenSSL REQUIRED)
 find_package(Threads REQUIRED)
-find_package(unofficial-libvpx CONFIG REQUIRED)
+find_package(unofficial-libvpx CONFIG QUIET)
+if(NOT TARGET unofficial::libvpx::libvpx)
+    # Homebrew and cross-compiled SDK prefixes generally have no vcpkg config.
+    find_path(WEBRTC_VPX_INCLUDE_DIR vpx/vpx_encoder.h REQUIRED)
+    find_library(WEBRTC_VPX_LIBRARY NAMES vpx REQUIRED)
+    add_library(unofficial::libvpx::libvpx UNKNOWN IMPORTED)
+    set_target_properties(unofficial::libvpx::libvpx PROPERTIES
+        IMPORTED_LOCATION "${WEBRTC_VPX_LIBRARY}"
+        INTERFACE_INCLUDE_DIRECTORIES "${WEBRTC_VPX_INCLUDE_DIR}")
+endif()
+if(APPLE OR ANDROID)
+    # AOM must use the requested slice, not the build host's processor.
+    set(AOM_TARGET_CPU "${WEBRTC_TARGET_CPU}" CACHE STRING "AOM target CPU")
+endif()
 # Use the pinned libaom source and its platform-aware CMake build.
 set(ENABLE_TESTS OFF CACHE BOOL "" FORCE)
 set(ENABLE_TESTDATA OFF CACHE BOOL "" FORCE)
@@ -60,3 +73,7 @@ add_subdirectory("${WEBRTC_ROOT}/third_party/crc32c/src" EXCLUDE_FROM_ALL)
 add_library(webrtc_pffft STATIC "${WEBRTC_ROOT}/third_party/pffft/src/pffft.c")
 add_library(webrtc_rnnoise STATIC "${WEBRTC_ROOT}/third_party/rnnoise/src/rnn_vad_weights.cc")
 target_include_directories(webrtc_rnnoise PRIVATE "${WEBRTC_ROOT}")
+
+if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
+    target_compile_definitions(webrtc_pffft PRIVATE _DEFAULT_SOURCE)
+endif()

@@ -1,0 +1,28 @@
+# Curated production sources; platform/SIMD selection is applied by webrtc_add_module.
+webrtc_add_module(media
+    media/base/adapted_video_track_source.cc
+    media/base/codec.cc
+    media/base/codec_comparators.cc
+    media/base/codec_list.cc
+    media/base/media_channel_impl.cc
+    media/base/media_constants.cc
+    media/base/media_engine.cc
+    media/base/rid_description.cc
+    media/base/rtp_utils.cc
+    media/base/sdp_video_format_utils.cc
+    media/base/stream_params.cc
+    media/base/turn_utils.cc
+    media/base/video_adapter.cc
+    media/base/video_broadcaster.cc
+    media/base/video_common.cc
+    media/base/video_source_base.cc
+    media/engine/adm_helpers.cc
+    media/engine/internal_decoder_factory.cc
+    media/engine/internal_encoder_factory.cc
+    media/engine/simulcast_encoder_adapter.cc
+    media/engine/webrtc_media_engine.cc
+    media/engine/webrtc_video_engine.cc
+    media/engine/webrtc_voice_engine.cc
+    media/sctp/dcsctp_transport.cc
+    media/sctp/sctp_transport_factory.cc
+)

@@ -1,0 +1,72 @@
+# Curated production sources; platform/SIMD selection is applied by webrtc_add_module.
+webrtc_add_module(pc
+    pc/audio_rtp_receiver.cc
+    pc/audio_track.cc
+    pc/channel.cc
+    pc/codec_vendor.cc
+    pc/connection_context.cc
+    pc/data_channel_controller.cc
+    pc/data_channel_utils.cc
+    pc/dtls_srtp_transport.cc
+    pc/dtls_transport.cc
+    pc/dtmf_sender.cc
+    pc/external_hmac.cc
+    pc/ice_server_parsing.cc
+    pc/ice_transport.cc
+    pc/jitter_buffer_delay.cc
+    pc/jsep_ice_candidate.cc
+    pc/jsep_session_description.cc
+    pc/jsep_transport.cc
+    pc/jsep_transport_collection.cc
+    pc/jsep_transport_controller.cc
+    pc/legacy_stats_collector.cc
+    pc/local_audio_source.cc
+    pc/media_options.cc
+    pc/media_protocol_names.cc
+    pc/media_session.cc
+    pc/media_stream.cc
+    pc/media_stream_observer.cc
+    pc/peer_connection.cc
+    pc/peer_connection_factory.cc
+    pc/peer_connection_message_handler.cc
+    pc/remote_audio_source.cc
+    pc/rtc_stats_collector.cc
+    pc/rtc_stats_traversal.cc
+    pc/rtcp_mux_filter.cc
+    pc/rtp_media_utils.cc
+    pc/rtp_parameters_conversion.cc
+    pc/rtp_receiver.cc
+    pc/rtp_sender.cc
+    pc/rtp_transceiver.cc
+    pc/rtp_transmission_manager.cc
+    pc/rtp_transport.cc
+    pc/sctp_data_channel.cc
+    pc/sctp_transport.cc
+    pc/sctp_utils.cc
+    pc/sdp_munging_detector.cc
+    pc/sdp_offer_answer.cc
+    pc/sdp_utils.cc
+    pc/session_description.cc
+    pc/simulcast_description.cc
+    pc/simulcast_sdp_serializer.cc
+    pc/srtp_session.cc
+    pc/srtp_transport.cc
+    pc/track_media_info_map.cc
+    pc/transceiver_list.cc
+    pc/transport_stats.cc
+    pc/typed_codec_vendor.cc
+    pc/usage_pattern.cc
+    pc/video_rtp_receiver.cc
+    pc/video_rtp_track_source.cc
+    pc/video_track.cc
+    pc/video_track_source.cc
+    pc/video_track_source_proxy.cc
+    pc/webrtc_sdp.cc
+    pc/webrtc_session_description_factory.cc
+)
+
+# srtp_session uses libsrtp's private datatypes header, whose socket includes
+# depend on the library's configure-time platform macros.
+if(UNIX)
+    target_compile_definitions(webrtc_pc_objects PRIVATE HAVE_NETINET_IN_H)
+endif()

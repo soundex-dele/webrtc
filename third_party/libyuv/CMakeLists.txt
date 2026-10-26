@@ -92,6 +92,9 @@ endif()
 
 if(NOT MSVC)
   string(TOLOWER "${CMAKE_SYSTEM_PROCESSOR}" arch_lowercase)
+  if(APPLE AND CMAKE_OSX_ARCHITECTURES)
+    string(TOLOWER "${CMAKE_OSX_ARCHITECTURES}" arch_lowercase)
+  endif()
 
   if(arch_lowercase MATCHES "^arm" AND NOT arch_lowercase STREQUAL "arm64")
     # Enable Arm Neon kernels.
@@ -115,6 +118,7 @@ if(NOT MSVC)
     target_compile_options(${ly_lib_name}_neon64 PRIVATE -march=armv8.2-a+dotprod+i8mm)
     list(APPEND ly_lib_parts $<TARGET_OBJECTS:${ly_lib_name}_neon64>)
 
+    if(NOT APPLE AND NOT ANDROID)
     # Enable AArch64 SVE kernels.
     add_library(${ly_lib_name}_sve OBJECT
       ${ly_src_dir}/row_sve.cc)
@@ -144,6 +148,9 @@ int main(void) { return 0; }
       list(APPEND ly_lib_parts $<TARGET_OBJECTS:${ly_lib_name}_sme>)
     else()
       add_definitions(-DLIBYUV_DISABLE_SME)
+    endif()
+    else()
+      add_definitions(-DLIBYUV_DISABLE_SVE -DLIBYUV_DISABLE_SME)
     endif()
   endif()
 endif()
@@ -200,6 +207,7 @@ find_package ( JPEG )
 if (JPEG_FOUND)
   include_directories( ${JPEG_INCLUDE_DIR} )
   target_link_libraries( ${ly_lib_shared} ${JPEG_LIBRARY} )
+  target_link_libraries( ${ly_lib_static} PUBLIC ${JPEG_LIBRARY} )
   add_definitions( -DHAVE_JPEG )
 endif()
 

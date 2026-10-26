@@ -1,6 +1,10 @@
 {
   "version": 3,
-  "cmakeMinimumRequired": { "major": 3, "minor": 21, "patch": 0 },
+  "cmakeMinimumRequired": {
+    "major": 3,
+    "minor": 21,
+    "patch": 0
+  },
   "configurePresets": [
     {
       "name": "windows-x64",
@@ -15,15 +19,231 @@
         "OPENSSL_USE_STATIC_LIBS": "ON",
         "OPENSSL_MSVC_STATIC_RT": "ON"
       },
-      "condition": { "type": "equals", "lhs": "${hostSystemName}", "rhs": "Windows" }
+      "condition": {
+        "type": "equals",
+        "lhs": "${hostSystemName}",
+        "rhs": "Windows"
+      }
+    },
+    {
+      "name": "apple-base",
+      "hidden": true,
+      "generator": "Unix Makefiles",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release",
+        "CMAKE_EXPORT_COMPILE_COMMANDS": true
+      },
+      "condition": {
+        "type": "equals",
+        "lhs": "${hostSystemName}",
+        "rhs": "Darwin"
+      }
+    },
+    {
+      "name": "macos-x86_64",
+      "inherits": "apple-base",
+      "binaryDir": "${sourceDir}/out/macos-x86_64",
+      "cacheVariables": {
+        "CMAKE_OSX_ARCHITECTURES": "x86_64",
+        "CMAKE_OSX_SYSROOT": "macosx",
+        "CMAKE_OSX_DEPLOYMENT_TARGET": "12.0"
+      }
+    },
+    {
+      "name": "macos-arm64",
+      "inherits": "apple-base",
+      "binaryDir": "${sourceDir}/out/macos-arm64",
+      "cacheVariables": {
+        "CMAKE_OSX_ARCHITECTURES": "arm64",
+        "CMAKE_OSX_SYSROOT": "macosx",
+        "CMAKE_OSX_DEPLOYMENT_TARGET": "12.0"
+      }
+    },
+    {
+      "name": "ios-arm64",
+      "inherits": "apple-base",
+      "binaryDir": "${sourceDir}/out/ios-arm64",
+      "cacheVariables": {
+        "CMAKE_OSX_ARCHITECTURES": "arm64",
+        "CMAKE_OSX_SYSROOT": "iphoneos",
+        "CMAKE_OSX_DEPLOYMENT_TARGET": "13.0",
+        "WEBRTC_BUILD_DEMO": false,
+        "CMAKE_FIND_ROOT_PATH": "${sourceDir}/out/apple-deps/iphoneos-arm64/install",
+        "CMAKE_PREFIX_PATH": "${sourceDir}/out/apple-deps/iphoneos-arm64/install"
+      },
+      "toolchainFile": "${sourceDir}/cmake/toolchains/ios.cmake"
+    },
+    {
+      "name": "ios-simulator-arm64",
+      "inherits": "apple-base",
+      "binaryDir": "${sourceDir}/out/ios-simulator-arm64",
+      "cacheVariables": {
+        "CMAKE_OSX_ARCHITECTURES": "arm64",
+        "CMAKE_OSX_SYSROOT": "iphonesimulator",
+        "CMAKE_OSX_DEPLOYMENT_TARGET": "13.0",
+        "WEBRTC_BUILD_DEMO": false,
+        "CMAKE_FIND_ROOT_PATH": "${sourceDir}/out/apple-deps/iphonesimulator-arm64/install",
+        "CMAKE_PREFIX_PATH": "${sourceDir}/out/apple-deps/iphonesimulator-arm64/install"
+      },
+      "toolchainFile": "${sourceDir}/cmake/toolchains/ios.cmake"
+    },
+    {
+      "name": "ios-simulator-x86_64",
+      "inherits": "apple-base",
+      "binaryDir": "${sourceDir}/out/ios-simulator-x86_64",
+      "cacheVariables": {
+        "CMAKE_OSX_ARCHITECTURES": "x86_64",
+        "CMAKE_OSX_SYSROOT": "iphonesimulator",
+        "CMAKE_OSX_DEPLOYMENT_TARGET": "13.0",
+        "WEBRTC_BUILD_DEMO": false,
+        "CMAKE_FIND_ROOT_PATH": "${sourceDir}/out/apple-deps/iphonesimulator-x86_64/install",
+        "CMAKE_PREFIX_PATH": "${sourceDir}/out/apple-deps/iphonesimulator-x86_64/install"
+      },
+      "toolchainFile": "${sourceDir}/cmake/toolchains/ios.cmake"
+    },
+    {
+      "name": "android-base",
+      "hidden": true,
+      "generator": "Ninja",
+      "toolchainFile": "$env{ANDROID_NDK_HOME}/build/cmake/android.toolchain.cmake",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release",
+        "CMAKE_EXPORT_COMPILE_COMMANDS": true,
+        "ANDROID_PLATFORM": "android-24",
+        "ANDROID_STL": "c++_static",
+        "WEBRTC_BUILD_DEMO": false,
+        "OPENSSL_USE_STATIC_LIBS": true,
+        "CMAKE_FIND_ROOT_PATH_MODE_PACKAGE": "ONLY",
+        "CMAKE_FIND_ROOT_PATH_MODE_LIBRARY": "ONLY",
+        "CMAKE_FIND_ROOT_PATH_MODE_INCLUDE": "ONLY"
+      }
+    },
+    {
+      "name": "android-arm64-v8a",
+      "inherits": "android-base",
+      "binaryDir": "${sourceDir}/out/android-arm64-v8a",
+      "cacheVariables": {
+        "ANDROID_ABI": "arm64-v8a",
+        "CMAKE_FIND_ROOT_PATH": "${sourceDir}/out/android-deps/arm64-v8a/api-24/install",
+        "CMAKE_PREFIX_PATH": "${sourceDir}/out/android-deps/arm64-v8a/api-24/install",
+        "OPENSSL_ROOT_DIR": "${sourceDir}/out/android-deps/arm64-v8a/api-24/install"
+      }
+    },
+    {
+      "name": "android-x86_64",
+      "inherits": "android-base",
+      "binaryDir": "${sourceDir}/out/android-x86_64",
+      "cacheVariables": {
+        "ANDROID_ABI": "x86_64",
+        "CMAKE_FIND_ROOT_PATH": "${sourceDir}/out/android-deps/x86_64/api-24/install",
+        "CMAKE_PREFIX_PATH": "${sourceDir}/out/android-deps/x86_64/api-24/install",
+        "OPENSSL_ROOT_DIR": "${sourceDir}/out/android-deps/x86_64/api-24/install"
+      }
     }
   ],
   "buildPresets": [
-    { "name": "windows-release", "configurePreset": "windows-x64", "configuration": "Release", "targets": ["peerconnection_demo", "matched_filter_smoke"], "jobs": 8 },
-    { "name": "windows-debug", "configurePreset": "windows-x64", "configuration": "Debug", "targets": ["peerconnection_demo", "matched_filter_smoke"], "jobs": 8 }
+    {
+      "name": "windows-release",
+      "configurePreset": "windows-x64",
+      "configuration": "Release",
+      "targets": [
+        "peerconnection_demo",
+        "matched_filter_smoke"
+      ],
+      "jobs": 8
+    },
+    {
+      "name": "windows-debug",
+      "configurePreset": "windows-x64",
+      "configuration": "Debug",
+      "targets": [
+        "peerconnection_demo",
+        "matched_filter_smoke"
+      ],
+      "jobs": 8
+    },
+    {
+      "name": "macos-x86_64",
+      "configurePreset": "macos-x86_64",
+      "targets": [
+        "webrtc",
+        "webrtc_modules"
+      ],
+      "jobs": 4
+    },
+    {
+      "name": "macos-arm64",
+      "configurePreset": "macos-arm64",
+      "targets": [
+        "webrtc",
+        "webrtc_modules"
+      ],
+      "jobs": 4
+    },
+    {
+      "name": "ios-arm64",
+      "configurePreset": "ios-arm64",
+      "targets": [
+        "webrtc",
+        "webrtc_modules"
+      ],
+      "jobs": 4
+    },
+    {
+      "name": "ios-simulator-arm64",
+      "configurePreset": "ios-simulator-arm64",
+      "targets": [
+        "webrtc",
+        "webrtc_modules"
+      ],
+      "jobs": 4
+    },
+    {
+      "name": "ios-simulator-x86_64",
+      "configurePreset": "ios-simulator-x86_64",
+      "targets": [
+        "webrtc",
+        "webrtc_modules"
+      ],
+      "jobs": 4
+    },
+    {
+      "name": "android-arm64-v8a",
+      "configurePreset": "android-arm64-v8a",
+      "targets": [
+        "webrtc",
+        "webrtc_modules",
+        "android_link_smoke"
+      ],
+      "jobs": 4
+    },
+    {
+      "name": "android-x86_64",
+      "configurePreset": "android-x86_64",
+      "targets": [
+        "webrtc",
+        "webrtc_modules",
+        "android_link_smoke"
+      ],
+      "jobs": 4
+    }
   ],
   "testPresets": [
-    { "name": "windows-release", "configurePreset": "windows-x64", "configuration": "Release", "output": { "outputOnFailure": true } },
-    { "name": "windows-debug", "configurePreset": "windows-x64", "configuration": "Debug", "output": { "outputOnFailure": true } }
+    {
+      "name": "windows-release",
+      "configurePreset": "windows-x64",
+      "configuration": "Release",
+      "output": {
+        "outputOnFailure": true
+      }
+    },
+    {
+      "name": "windows-debug",
+      "configurePreset": "windows-x64",
+      "configuration": "Debug",
+      "output": {
+        "outputOnFailure": true
+      }
+    }
   ]
 }

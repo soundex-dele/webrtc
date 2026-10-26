@@ -1,0 +1,36 @@
+# Curated production sources; platform/SIMD selection is applied by webrtc_add_module.
+webrtc_add_module(p2p
+    p2p/base/async_stun_tcp_socket.cc
+    p2p/base/basic_async_resolver_factory.cc
+    p2p/base/basic_ice_controller.cc
+    p2p/base/basic_packet_socket_factory.cc
+    p2p/base/connection.cc
+    p2p/base/connection_info.cc
+    p2p/base/default_ice_transport_factory.cc
+    p2p/base/ice_controller_interface.cc
+    p2p/base/ice_credentials_iterator.cc
+    p2p/base/ice_switch_reason.cc
+    p2p/base/ice_transport_internal.cc
+    p2p/base/p2p_constants.cc
+    p2p/base/p2p_transport_channel.cc
+    p2p/base/packet_transport_internal.cc
+    p2p/base/port.cc
+    p2p/base/port_allocator.cc
+    p2p/base/port_interface.cc
+    p2p/base/pseudo_tcp.cc
+    p2p/base/regathering_controller.cc
+    p2p/base/stun_dictionary.cc
+    p2p/base/stun_port.cc
+    p2p/base/stun_request.cc
+    p2p/base/tcp_port.cc
+    p2p/base/transport_description.cc
+    p2p/base/transport_description_factory.cc
+    p2p/base/turn_port.cc
+    p2p/base/wrapping_active_ice_controller.cc
+    p2p/client/basic_port_allocator.cc
+    p2p/client/turn_port_factory.cc
+    p2p/dtls/dtls_stun_piggyback_controller.cc
+    p2p/dtls/dtls_transport.cc
+    p2p/dtls/dtls_transport_internal.cc
+    p2p/dtls/dtls_utils.cc
+)

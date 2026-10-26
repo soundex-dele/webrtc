@@ -1,0 +1,35 @@
+# Curated production sources; platform/SIMD selection is applied by webrtc_add_module.
+webrtc_add_module(call
+    call/adaptation/adaptation_constraint.cc
+    call/adaptation/broadcast_resource_listener.cc
+    call/adaptation/degradation_preference_provider.cc
+    call/adaptation/encoder_settings.cc
+    call/adaptation/resource_adaptation_processor.cc
+    call/adaptation/resource_adaptation_processor_interface.cc
+    call/adaptation/video_source_restrictions.cc
+    call/adaptation/video_stream_adapter.cc
+    call/adaptation/video_stream_input_state.cc
+    call/adaptation/video_stream_input_state_provider.cc
+    call/audio_receive_stream.cc
+    call/audio_send_stream.cc
+    call/audio_state.cc
+    call/bitrate_allocator.cc
+    call/call.cc
+    call/call_config.cc
+    call/flexfec_receive_stream.cc
+    call/flexfec_receive_stream_impl.cc
+    call/payload_type_picker.cc
+    call/receive_time_calculator.cc
+    call/rtp_bitrate_configurator.cc
+    call/rtp_config.cc
+    call/rtp_demuxer.cc
+    call/rtp_payload_params.cc
+    call/rtp_stream_receiver_controller.cc
+    call/rtp_transport_controller_send.cc
+    call/rtp_video_sender.cc
+    call/rtx_receive_stream.cc
+    call/syncable.cc
+    call/version.cc
+    call/video_receive_stream.cc
+    call/video_send_stream.cc
+)

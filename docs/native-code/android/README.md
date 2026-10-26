@@ -1,5 +1,9 @@
 # WebRTC Android development
 
+For this fork's native C++ NDK/CMake build (arm64-v8a/x86_64, macOS or Linux
+host), see [Android CMake instructions](../development/android-cmake.md).
+The instructions below describe the upstream GN/Java/JNI development workflow.
+
 ## Getting the Code
 
 Android development is only supported on Linux.

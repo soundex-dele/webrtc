@@ -14,9 +14,13 @@ This repository contains a fork of WebRTC from Google with various improvements.
 
 ### Android
 
+- Native C++ CMake builds for arm64-v8a/x86_64: [Android CMake instructions](docs/native-code/development/android-cmake.md).
+
 - WrappedVideoDecoderFactory [#74](https://github.com/webrtc-sdk/webrtc/pull/74)
 
 ### iOS / Mac
+
+- Native CMake builds and independently compiled module archives: [Apple CMake instructions](docs/native-code/development/apple-cmake.md).
 
 - Sane audio handling [patch](https://github.com/webrtc-sdk/webrtc/commit/272127d457ab48e36241e82549870405864851f6)
   - Do not acquire microphone/permissions unless actively publishing audio

@@ -35,7 +35,7 @@ WebRTC 为 SDK 和媒体服务提供 PeerConnection、ICE/DTLS/SRTP、媒体编�
 
 ## 3. 构建与二进制契约
 
-本地 CMake 工程支持 x64 Windows 与 x86-64 Linux 源清单，其他架构当前在配置期拒绝。上游存在 Android/iOS 实现不等于本 CMake 清单已支持这些平台。
+本地 CMake 工程支持 Windows/Linux x64、macOS x86_64/arm64、iOS arm64 与模拟器 x86_64/arm64，以及 Android API 24+ 的 arm64-v8a/x86_64。Apple 每个构建目录只选择一个 SDK/架构切片，Android 每个目录只选择一个 ABI/API 组合。Android 当前提供原生 C++ 核心，设备音频由应用注入 ADM，不包含 Java/JNI、AAR 或设备采集封装。源码按职责拆成 20 个模块，每个模块独立生成静态库，聚合库复用同一批对象。
 
 Windows 以 VS 2022、MSVC v143、CMake 与静态 CRT `/MT` 为基线，Debug 为 `/MTd`；外部 OpenSSL/libvpx/dav1d 依赖须使用一致架构、配置与 CRT。Linux 服务端已使用 Clang 15 + libc++ 的适配路径，不能直接混用不同 C++ 标准库产物。
 
@@ -43,7 +43,7 @@ Windows 以 VS 2022、MSVC v143、CMake 与静态 CRT `/MT` 为基线，Debug �
 
 依赖源码不由构建过程静默修改。每组工具链与构建配置使用独立输出目录；预编译包清单记录源码提交、补丁哈希、编译器、架构、CRT/标准库、编译选项、外部依赖版本、库哈希和许可证。
 
-构建入口与依赖详情见 [Windows CMake 说明](native-code/development/windows-cmake.md)，Linux 消费端适配见 [媒体服务 README](../../livekit-cpp/README.md)。
+构建入口与依赖详情见 [Windows CMake 说明](native-code/development/windows-cmake.md)、[Apple 与模块构建说明](native-code/development/apple-cmake.md)、[Android CMake 说明](native-code/development/android-cmake.md)，Linux 消费端适配见 [媒体服务 README](../../livekit-cpp/README.md)。
 
 ## 4. 线程、时钟与资源
 

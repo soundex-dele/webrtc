@@ -105,6 +105,11 @@ string(STRIP "${AOM_CMAKE_CONFIG}" AOM_CMAKE_CONFIG)
 
 message("--- aom_configure: Detected CPU: ${AOM_TARGET_CPU}")
 set(AOM_TARGET_SYSTEM ${CMAKE_SYSTEM_NAME})
+# CMake names the iPhone SDK platform "iOS"; its assembler/object format and
+# symbol export conventions are the same Darwin conventions used by macOS.
+if(APPLE)
+  set(AOM_TARGET_SYSTEM Darwin)
+endif()
 
 string(TOLOWER "${CMAKE_BUILD_TYPE}" build_type_lowercase)
 if(build_type_lowercase STREQUAL "debug")
@@ -494,7 +499,15 @@ foreach(NUM RANGE ${AOM_RTCD_CUSTOM_COMMAND_COUNT})
       --arch=${AOM_TARGET_CPU}
       --sym=${AOM_RTCD_SYMBOL} ${AOM_RTCD_FLAGS}
       --config=${AOM_CONFIG_DIR}/config/aom_config.h ${AOM_RTCD_CONFIG_FILE}
-    OUTPUT_FILE ${AOM_RTCD_HEADER_FILE})
+    OUTPUT_FILE "${AOM_RTCD_HEADER_FILE}.tmp"
+    RESULT_VARIABLE AOM_RTCD_RESULT)
+  if(NOT AOM_RTCD_RESULT EQUAL 0)
+    message(FATAL_ERROR "Failed to generate ${AOM_RTCD_HEADER_FILE}")
+  endif()
+  # Preserve timestamps when a parent CMake project is reconfigured. Otherwise
+  # adding/changing one WebRTC module recompiles almost the entire AOM library.
+  configure_file("${AOM_RTCD_HEADER_FILE}.tmp" "${AOM_RTCD_HEADER_FILE}" COPYONLY)
+  file(REMOVE "${AOM_RTCD_HEADER_FILE}.tmp")
 endforeach()
 
 # Generate aom_version.h.

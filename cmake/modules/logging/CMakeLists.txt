@@ -1,0 +1,44 @@
+# Curated production sources; platform/SIMD selection is applied by webrtc_add_module.
+webrtc_add_module(logging
+    logging/rtc_event_log/encoder/bit_writer.cc
+    logging/rtc_event_log/encoder/blob_encoding.cc
+    logging/rtc_event_log/encoder/delta_encoding.cc
+    logging/rtc_event_log/encoder/optional_blob_encoding.cc
+    logging/rtc_event_log/encoder/rtc_event_log_encoder_common.cc
+    logging/rtc_event_log/encoder/rtc_event_log_encoder_v3.cc
+    logging/rtc_event_log/encoder/var_int.cc
+    logging/rtc_event_log/events/fixed_length_encoding_parameters_v3.cc
+    logging/rtc_event_log/events/rtc_event_alr_state.cc
+    logging/rtc_event_log/events/rtc_event_audio_network_adaptation.cc
+    logging/rtc_event_log/events/rtc_event_audio_playout.cc
+    logging/rtc_event_log/events/rtc_event_audio_receive_stream_config.cc
+    logging/rtc_event_log/events/rtc_event_audio_send_stream_config.cc
+    logging/rtc_event_log/events/rtc_event_begin_log.cc
+    logging/rtc_event_log/events/rtc_event_bwe_update_delay_based.cc
+    logging/rtc_event_log/events/rtc_event_bwe_update_loss_based.cc
+    logging/rtc_event_log/events/rtc_event_dtls_transport_state.cc
+    logging/rtc_event_log/events/rtc_event_dtls_writable_state.cc
+    logging/rtc_event_log/events/rtc_event_end_log.cc
+    logging/rtc_event_log/events/rtc_event_field_encoding.cc
+    logging/rtc_event_log/events/rtc_event_field_encoding_parser.cc
+    logging/rtc_event_log/events/rtc_event_field_extraction.cc
+    logging/rtc_event_log/events/rtc_event_frame_decoded.cc
+    logging/rtc_event_log/events/rtc_event_generic_ack_received.cc
+    logging/rtc_event_log/events/rtc_event_generic_packet_received.cc
+    logging/rtc_event_log/events/rtc_event_generic_packet_sent.cc
+    logging/rtc_event_log/events/rtc_event_ice_candidate_pair.cc
+    logging/rtc_event_log/events/rtc_event_ice_candidate_pair_config.cc
+    logging/rtc_event_log/events/rtc_event_neteq_set_minimum_delay.cc
+    logging/rtc_event_log/events/rtc_event_probe_cluster_created.cc
+    logging/rtc_event_log/events/rtc_event_probe_result_failure.cc
+    logging/rtc_event_log/events/rtc_event_probe_result_success.cc
+    logging/rtc_event_log/events/rtc_event_route_change.cc
+    logging/rtc_event_log/events/rtc_event_rtcp_packet_incoming.cc
+    logging/rtc_event_log/events/rtc_event_rtcp_packet_outgoing.cc
+    logging/rtc_event_log/events/rtc_event_rtp_packet_incoming.cc
+    logging/rtc_event_log/events/rtc_event_rtp_packet_outgoing.cc
+    logging/rtc_event_log/events/rtc_event_video_receive_stream_config.cc
+    logging/rtc_event_log/events/rtc_event_video_send_stream_config.cc
+    logging/rtc_event_log/ice_logger.cc
+    logging/rtc_event_log/rtc_stream_config.cc
+)

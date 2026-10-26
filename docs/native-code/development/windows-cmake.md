@@ -15,9 +15,10 @@ not require GN, Ninja, depot_tools, or a Chromium dependency checkout.
 - Perl on `PATH` for libaom's generated headers (for example Strawberry Perl,
   or pass `-DPERL_EXECUTABLE=C:/path/to/perl.exe`).
 
-The CMake source manifest currently supports x64 Windows and x86-64 Linux.
-Other architectures are rejected at configure time rather than compiling x86
-SIMD sources for the wrong CPU.
+The CMake source manifests support x64 Windows/Linux and macOS/iOS Apple
+slices. See [Apple builds and module targets](apple-cmake.md) for the platform
+matrix and independent module archive commands. Unsupported architectures are
+rejected at configure time.
 
 ## Build from PowerShell
 
