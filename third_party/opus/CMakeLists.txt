@@ -278,6 +278,10 @@ endif()
 # ARM64 uses the portable Opus kernels. Its runtime dispatch needs a generated
 # ARM config; do not compile x86 or partially configured ARM dispatch tables.
 
+# This target uses floating-point CELT/SILK (FIXED_POINT is not defined).
+# Fixed-point encoder translation units call different CELT signatures and
+# must not be mixed into the floating-point library.
+list(FILTER OPUS_SOURCES EXCLUDE REGEX "src/silk/fixed/")
 add_library(opus STATIC ${OPUS_SOURCES})
 add_library(Opus::opus ALIAS opus)
 target_include_directories(opus PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/src/include")
