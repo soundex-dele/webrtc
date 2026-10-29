@@ -64,7 +64,9 @@ class TransformableOutgoingAudioFrame
       std::vector<uint32_t> csrcs,
       const std::string& codec_mime_type,
       std::optional<uint16_t> sequence_number,
-      std::optional<uint8_t> audio_level_dbov)
+      std::optional<uint8_t> audio_level_dbov,
+      std::function<void()> on_release = {},
+      std::function<bool()> can_send = {})
       : TransformableAudioFrameInterface(Passkey()),
         frame_type_(frame_type),
         payload_type_(payload_type),
@@ -75,8 +77,13 @@ class TransformableOutgoingAudioFrame
         csrcs_(std::move(csrcs)),
         codec_mime_type_(codec_mime_type),
         sequence_number_(sequence_number),
-        audio_level_dbov_(audio_level_dbov) {}
-  ~TransformableOutgoingAudioFrame() override = default;
+        audio_level_dbov_(audio_level_dbov),
+        on_release_(std::move(on_release)),
+        can_send_(std::move(can_send)) {}
+  ~TransformableOutgoingAudioFrame() override {
+    if (on_release_) on_release_();
+  }
+  bool CanSend() const { return !can_send_ || can_send_(); }
   ArrayView<const uint8_t> GetData() const override { return payload_; }
   void SetData(ArrayView<const uint8_t> data) override {
     payload_.SetData(data.data(), data.size());
@@ -129,6 +136,8 @@ class TransformableOutgoingAudioFrame
   std::string codec_mime_type_;
   std::optional<uint16_t> sequence_number_;
   std::optional<uint8_t> audio_level_dbov_;
+  std::function<void()> on_release_;
+  std::function<bool()> can_send_;
 };
 
 ChannelSendFrameTransformerDelegate::ChannelSendFrameTransformerDelegate(
@@ -203,6 +212,9 @@ void ChannelSendFrameTransformerDelegate::SendFrame(
   RTC_DCHECK_RUN_ON(encoder_queue_);
   if (!send_frame_callback_)
     return;
+  if (const auto* external = dynamic_cast<const TransformableOutgoingAudioFrame*>(frame.get());
+      external && !external->CanSend())
+    return;
   auto* transformed_frame =
       static_cast<TransformableAudioFrameInterface*>(frame.get());
   send_frame_callback_(
@@ -228,6 +240,23 @@ std::unique_ptr<TransformableAudioFrameInterface> CloneSenderAudioFrame(
       original->AbsoluteCaptureTimestamp(), original->GetSsrc(),
       std::move(csrcs), original->GetMimeType(), original->SequenceNumber(),
       original->AudioLevel());
+}
+
+std::unique_ptr<TransformableAudioFrameInterface> CreateSenderAudioFrame(
+    ArrayView<const uint8_t> payload,
+    uint8_t payload_type,
+    uint32_t rtp_timestamp,
+    uint32_t ssrc,
+    const std::string& codec_mime_type,
+    std::optional<uint64_t> absolute_capture_timestamp_ms,
+    std::optional<uint8_t> audio_level_dbov,
+    std::function<void()> on_release,
+    std::function<bool()> can_send) {
+  return std::make_unique<TransformableOutgoingAudioFrame>(
+      AudioFrameType::kAudioFrameSpeech, payload_type, rtp_timestamp,
+      payload.data(), payload.size(), absolute_capture_timestamp_ms, ssrc,
+      std::vector<uint32_t>(), codec_mime_type, std::nullopt, audio_level_dbov,
+      std::move(on_release), std::move(can_send));
 }
 
 }  // namespace webrtc

@@ -418,6 +418,11 @@ class RTC_EXPORT VideoEncoder {
   // Input:   - packet_loss_rate  : The packet loss rate (0.0 to 1.0).
   virtual void OnPacketLossRateUpdate(float packet_loss_rate);
 
+  // Notifies external encoded sources immediately when a PLI/FIR requests a
+  // refresh, including when no subsequent source frame arrives. Ordinary
+  // encoders still receive the key-frame request through Encode(frame_types).
+  virtual void OnKeyFrameRequested() {}
+
   // Inform the encoder when the round trip time changes.
   //
   // Input:   - rtt_ms            : The new RTT, in milliseconds.

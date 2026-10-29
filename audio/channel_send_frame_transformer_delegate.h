@@ -11,7 +11,9 @@
 #ifndef AUDIO_CHANNEL_SEND_FRAME_TRANSFORMER_DELEGATE_H_
 #define AUDIO_CHANNEL_SEND_FRAME_TRANSFORMER_DELEGATE_H_
 
+#include <functional>
 #include <memory>
+#include <optional>
 #include <string>
 
 #include "api/frame_transformer_interface.h"
@@ -87,6 +89,27 @@ class ChannelSendFrameTransformerDelegate : public TransformedFrameCallback {
 
 std::unique_ptr<TransformableAudioFrameInterface> CloneSenderAudioFrame(
     TransformableAudioFrameInterface* original);
+
+// Creates an owned external encoded audio access unit for the sender's
+// TransformedFrameCallback. No PCM frame or previous encoder output is needed.
+// `rtp_timestamp` is the final wire timestamp, including the sender's offset,
+// just like GetTimestamp() on a transformed sender frame. Payload type and SSRC
+// must describe the negotiated sender. The native SendRtpAudio path still owns
+// encryption, RTP packetization and RTCP timestamp accounting.
+// `on_release` runs once when native ownership ends, on any thread; it must not
+// throw. This allows callers to bound outstanding work on the encoder queue.
+// `can_send`, if supplied, runs on that queue just before SendRtpAudio; it must
+// not throw or reenter the channel. It can reject expired/cancelled access units.
+std::unique_ptr<TransformableAudioFrameInterface> CreateSenderAudioFrame(
+    ArrayView<const uint8_t> payload,
+    uint8_t payload_type,
+    uint32_t rtp_timestamp,
+    uint32_t ssrc,
+    const std::string& codec_mime_type,
+    std::optional<uint64_t> absolute_capture_timestamp_ms = std::nullopt,
+    std::optional<uint8_t> audio_level_dbov = std::nullopt,
+    std::function<void()> on_release = {},
+    std::function<bool()> can_send = {});
 
 }  // namespace webrtc
 #endif  // AUDIO_CHANNEL_SEND_FRAME_TRANSFORMER_DELEGATE_H_

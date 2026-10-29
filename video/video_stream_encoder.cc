@@ -1593,6 +1593,10 @@ void VideoStreamEncoder::OnFrame(Timestamp post_time,
   const int kMsToRtpTimestamp = 90;
   incoming_frame.set_rtp_timestamp(
       kMsToRtpTimestamp * static_cast<uint32_t>(incoming_frame.ntp_time_ms()));
+  if (video_frame.video_frame_buffer()->type() == VideoFrameBuffer::Type::kNative &&
+      video_frame.encoded_rtp_timestamp()) {
+    incoming_frame.set_rtp_timestamp(*video_frame.encoded_rtp_timestamp());
+  }
 
   // Identifier should remain the same for newly produced incoming frame and the
   // received |video_frame|.
@@ -2131,6 +2135,7 @@ void VideoStreamEncoder::SendKeyFrame(
     return;
   }
   RTC_DCHECK_RUN_ON(encoder_queue_.get());
+  if (encoder_) encoder_->OnKeyFrameRequested();
   TRACE_EVENT0("webrtc", "OnKeyFrameRequest");
   RTC_DCHECK(!next_frame_types_.empty());
 

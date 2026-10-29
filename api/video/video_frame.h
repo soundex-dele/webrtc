@@ -206,6 +206,17 @@ class RTC_EXPORT VideoFrame {
   // Get frame timestamp (90kHz).
   uint32_t rtp_timestamp() const { return timestamp_rtp_; }
 
+  // External encoded envelopes may already have a media-clock timestamp.
+  // Preserve it through VideoStreamEncoder instead of quantizing it to the
+  // millisecond capture clock. Only honored for kNative buffers; ordinary raw
+  // sources retain the existing capture-time to RTP mapping.
+  void set_encoded_rtp_timestamp(std::optional<uint32_t> timestamp) {
+    encoded_rtp_timestamp_ = timestamp;
+  }
+  std::optional<uint32_t> encoded_rtp_timestamp() const {
+    return encoded_rtp_timestamp_;
+  }
+
   // Set capture ntp time in milliseconds.
   void set_ntp_time_ms(int64_t ntp_time_ms) { ntp_time_ms_ = ntp_time_ms; }
 
@@ -301,6 +312,7 @@ class RTC_EXPORT VideoFrame {
   // An opaque reference counted handle that stores the pixel data.
   scoped_refptr<webrtc::VideoFrameBuffer> video_frame_buffer_;
   uint32_t timestamp_rtp_;
+  std::optional<uint32_t> encoded_rtp_timestamp_;
   int64_t ntp_time_ms_;
   int64_t timestamp_us_;
   std::optional<Timestamp> presentation_timestamp_;
